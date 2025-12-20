@@ -1,6 +1,6 @@
 use hex;
 use k256::ecdsa::{SigningKey, VerifyingKey};
-use rand::{rngs::OsRng, RngCore};
+
 use rayon::prelude::*;
 use sha3::{Digest, Keccak256};
 use std::sync::atomic::Ordering;
@@ -80,9 +80,7 @@ impl EthereumVanityGenerator {
                 }
 
                 // Thread-local generator
-                let mut rng = OsRng;
-                let mut bytes = [0u8; 32];
-                rng.fill_bytes(&mut bytes);
+                let bytes: [u8; 32] = rand::random();
 
                 let signing_key =
                     SigningKey::from_bytes(&bytes.into()).expect("valid key from random");
