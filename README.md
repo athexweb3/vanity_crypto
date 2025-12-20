@@ -16,9 +16,9 @@
 
 ## Overview
 
-Vanity Crypto is a high-performance, cryptographically secure Ethereum vanity address generator implementation in Rust. It leverages parallel processing architectures (`rayon`) to maximize address generation throughput while adhering to strict security standards.
+Vanity Crypto is a high-performance, cryptographically secure Crypto vanity address generator implementation in Rust. It leverages parallel processing architectures (`rayon`) to maximize address generation throughput while adhering to strict security standards.
 
-The application includes an independent verification suite rooted in the Python `eth-account` library, ensuring that all generated cryptographic material is mathematically valid and compliant with the Ethereum Yellow Paper specifications.
+The application includes an independent verification suite rooted in the Python `eth-account` library, ensuring that all generated cryptographic material is mathematically valid and compliant with the [Ethereum Yellow Paper](https://ethereum.github.io/yellowpaper/paper.pdf) specifications.
 
 ## Key Features
 
