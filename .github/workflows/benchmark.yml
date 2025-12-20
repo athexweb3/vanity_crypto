@@ -1,0 +1,38 @@
+name: Benchmark
+
+on:
+  push:
+    branches: [ "master", "main" ]
+  pull_request:
+    branches: [ "master", "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  benchmark:
+    name: Performance Track
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+
+      - name: Run Benchmarks
+        # Runs benchmarks and saves output to a file
+        run: cargo bench -p vanity_wallet -- --output-format bencher | tee benchmark_results.txt
+      
+      - name: Store Benchmark Result
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          tool: 'cargo'
+          output-file-path: benchmark_results.txt
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: true
+          # Show alert with commit comment on detecting possible performance regression
+          alert-threshold: '120%'
+          comment-on-alert: true
+          fail-on-alert: true
+          alert-comment-cc-users: '@athexweb3'
