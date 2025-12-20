@@ -89,7 +89,7 @@ jobs:
         # We can't easily download from the release just created in the same workflow standardly 
         # without a persistent artifact or calling the API.
         # EASIER: We upload artifacts in the previous job, then download here.
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         # But wait, softprops/action-gh-release uploads to the Release page, not Actions Artifacts.
         # We should ALSO upload to Actions Artifacts in the build job to make them available here.
         # Instead of modifying the build job matrix (complex), let's use the GH CLI to fetch from the release we just made.
