@@ -1,0 +1,16 @@
+[package]
+name = "vanity_ui"
+version = "0.1.0"
+authors = { workspace = true }
+edition = { workspace = true }
+license = { workspace = true }
+repository = { workspace = true }
+homepage = { workspace = true }
+description = "TUI interface for vanity_crypto"
+
+[dependencies]
+vanity_core = { workspace = true }
+ratatui = { workspace = true }
+crossterm = { workspace = true }
+indicatif = { workspace = true }
+anyhow = { workspace = true }

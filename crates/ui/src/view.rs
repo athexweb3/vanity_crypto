@@ -1,0 +1,349 @@
+use crate::app::{App, AppState};
+use ratatui::{
+    layout::{Alignment, Constraint, Direction, Layout},
+    style::{Color, Modifier, Style},
+    text::{Line, Span, Text},
+    widgets::{Block, Borders, Paragraph},
+    Frame,
+};
+use std::sync::atomic::Ordering;
+
+pub fn ui(f: &mut Frame, app: &mut App) {
+    // Common Layout: Header (3) | Content (Min) | Spacer (1) | Footer/Help (1)
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(3), // Header
+            Constraint::Min(5),    // Content
+            Constraint::Length(1), // Spacer
+            Constraint::Length(1), // Footer/Help
+        ])
+        .split(f.area());
+
+    render_header(f, chunks[0]);
+
+    match app.state {
+        AppState::Config => {
+            render_config(f, app, chunks[1]);
+            render_config_footer(f, chunks[3]);
+        }
+        AppState::Searching | AppState::Finished => {
+            render_searching_body(f, app, chunks[1]);
+            render_search_footer(f, chunks[3]);
+        }
+    }
+}
+
+fn render_header(f: &mut Frame, area: ratatui::layout::Rect) {
+    let title = Paragraph::new(Text::from(vec![Line::from(vec![
+        Span::styled(
+            " VANITY ",
+            Style::default().fg(Color::Black).bg(Color::Cyan),
+        ),
+        Span::styled(
+            " CRYPTO ",
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        ),
+    ])]))
+    .alignment(Alignment::Center)
+    .block(Block::default().borders(Borders::ALL));
+    f.render_widget(title, area);
+}
+
+fn render_config_footer(f: &mut Frame, area: ratatui::layout::Rect) {
+    let help = Paragraph::new("Tab: Next Field | Enter: Select/Start | Esc: Quit")
+        .style(Style::default().fg(Color::Gray))
+        .alignment(Alignment::Center);
+    f.render_widget(help, area);
+}
+
+fn render_search_footer(f: &mut Frame, area: ratatui::layout::Rect) {
+    let footer = Paragraph::new("Press 'q' to quit (WARNING: Progress will be lost)")
+        .style(Style::default().fg(Color::DarkGray))
+        .alignment(Alignment::Center);
+    f.render_widget(footer, area);
+}
+
+fn render_config(f: &mut Frame, app: &mut App, area: ratatui::layout::Rect) {
+    // Top-Left aligned with padding
+    let layout = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Length(2), // Left Padding
+            Constraint::Min(1),    // Content
+        ])
+        .split(area);
+
+    let content_area = layout[1];
+
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(1), // Top Padding
+            Constraint::Length(2), // Subtitle
+            Constraint::Length(2), // Prefix
+            Constraint::Length(2), // Suffix
+            Constraint::Length(2), // Options
+            Constraint::Length(2), // Button
+        ])
+        .split(content_area);
+
+    // Sub-title
+    let title = Paragraph::new("Enter Search Patterns")
+        .alignment(Alignment::Left)
+        .style(
+            Style::default()
+                .fg(Color::DarkGray)
+                .add_modifier(Modifier::BOLD),
+        );
+    f.render_widget(title, chunks[1]); // Index 1 now
+
+    // Helpers
+    let active_style = Style::default()
+        .fg(Color::Yellow)
+        .add_modifier(Modifier::BOLD);
+    let inactive_style = Style::default().fg(Color::Gray);
+    let cursor_symbol = |idx| {
+        if app.input_focus_index == idx {
+            "> "
+        } else {
+            "  "
+        }
+    };
+    let style_for = |idx| {
+        if app.input_focus_index == idx {
+            active_style
+        } else {
+            inactive_style
+        }
+    };
+
+    // 1. Prefix
+    let prefix_val = if app.prefix.is_empty() {
+        "..."
+    } else {
+        &app.prefix
+    };
+    let prefix_text = vec![
+        Span::styled(cursor_symbol(0), style_for(0)),
+        Span::styled("Prefix : ", style_for(0)),
+        Span::raw(prefix_val),
+    ];
+    let prefix_p = Paragraph::new(Line::from(prefix_text));
+    f.render_widget(prefix_p, chunks[2]); // Index 2
+
+    // 2. Suffix
+    let suffix_val = if app.suffix.is_empty() {
+        "..."
+    } else {
+        &app.suffix
+    };
+    let suffix_text = vec![
+        Span::styled(cursor_symbol(1), style_for(1)),
+        Span::styled("Suffix : ", style_for(1)),
+        Span::raw(suffix_val),
+    ];
+    let suffix_p = Paragraph::new(Line::from(suffix_text));
+    f.render_widget(suffix_p, chunks[3]); // Index 3
+
+    // 3. Options
+    let check = if app.case_sensitive { "[x]" } else { "[ ]" };
+    let opts_text = vec![
+        Span::styled(cursor_symbol(2), style_for(2)),
+        Span::styled("Options: ", style_for(2)),
+        Span::raw(format!("{} Case Sensitive", check)),
+    ];
+    let opts_p = Paragraph::new(Line::from(opts_text));
+    f.render_widget(opts_p, chunks[4]); // Index 4
+
+    // 4. Button
+    let btn_style = if app.input_focus_index == 3 {
+        Style::default()
+            .bg(Color::Green)
+            .fg(Color::Black)
+            .add_modifier(Modifier::BOLD)
+    } else {
+        Style::default().fg(Color::DarkGray)
+    };
+
+    // To align closely with "Prefix : ...", let's just make it a simple block below.
+    // Actually simplicity is key. Left aligned list is very terminal-standard.
+    let btn_label = if app.input_focus_index == 3 {
+        format!("{}[ START ENGINE ]", cursor_symbol(3))
+    } else {
+        format!("  [ START ENGINE ]")
+    };
+    let btn_p = Paragraph::new(btn_label).style(btn_style);
+    f.render_widget(btn_p, chunks[5]); // Index 5
+}
+
+fn render_searching_body(f: &mut Frame, app: &mut App, area: ratatui::layout::Rect) {
+    let attempts = app.attempts.load(Ordering::Relaxed);
+    let speed = app.rate_per_second;
+    let elapsed = if let Some(start) = app.start_time {
+        start.elapsed().as_secs()
+    } else {
+        0
+    };
+
+    if let Some(found) = &app.found_address {
+        // Success View - Split into Result and Safety Warning
+        let result_chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Min(6),
+                Constraint::Length(8), // Safety Warning
+            ])
+            .split(area);
+
+        // Explicitly format the private key to be copy-friendly
+        // If it's too long, we split it into two lines cleanly
+        let pk_str = &found.1; // Private Key is index 1
+
+        let pk_lines = if pk_str.len() > 60 {
+            // Split in half essentially
+            let mid = pk_str.len() / 2;
+            vec![
+                Line::from(Span::raw(&pk_str[..mid])),
+                Line::from(Span::raw(&pk_str[mid..])),
+            ]
+        } else {
+            vec![Line::from(pk_str.as_str())]
+        };
+
+        let mut success_text = vec![
+            Line::from(vec![
+                Span::styled("Address: ", Style::default().fg(Color::Gray)),
+                Span::styled(
+                    &found.0,
+                    Style::default()
+                        .fg(Color::White)
+                        .add_modifier(Modifier::BOLD),
+                ), // Address is index 0
+            ]),
+            Line::from(""),
+            Line::from(Span::styled(
+                "Private Key:",
+                Style::default().fg(Color::Gray),
+            )),
+        ];
+        success_text.extend(pk_lines);
+
+        // Add footer note about finding it in stdout
+        success_text.push(Line::from(""));
+        success_text.push(Line::from(Span::styled(
+            "(Press 'q' to copy single-line key from terminal)",
+            Style::default().fg(Color::DarkGray),
+        )));
+
+        let success_block = Paragraph::new(success_text)
+            .style(Style::default().fg(Color::Green))
+            .alignment(Alignment::Center)
+            // .wrap(ratatui::widgets::Wrap { trim: true }) // DISABLED WRAPPING to prevent auto-breaks
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title(" 🎉 FOUND MATCH! 🎉 ")
+                    .border_style(Style::default().fg(Color::Green)),
+            );
+        f.render_widget(success_block, result_chunks[0]);
+
+        let warning_text = vec![
+            Line::from(Span::styled(
+                "⚠️  SECURITY WARNING ⚠️",
+                Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
+            )),
+            Line::from(""),
+            Line::from("1. This tool is offline, but your computer usage leaves traces."),
+            Line::from("2. Send a SMALL test transaction to this address first."),
+            Line::from("3. Verify you can access the funds before transferring large amounts."),
+            Line::from("4. NEVER share the private key with anyone."),
+        ];
+
+        let warning_block = Paragraph::new(warning_text)
+            .style(Style::default().fg(Color::Yellow))
+            .alignment(Alignment::Center)
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title(" Safety First ")
+                    .border_style(Style::default().fg(Color::Red)),
+            );
+        f.render_widget(warning_block, result_chunks[1]);
+    } else {
+        // Search View
+        let stats_chunks = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+            .split(area);
+
+        // Config Block
+        let cs_text = if app.case_sensitive { "Yes" } else { "No" };
+        let config_text = vec![
+            Line::from(vec![
+                Span::raw("Prefix : "),
+                Span::styled(&app.prefix, Style::default().fg(Color::Magenta)),
+            ]),
+            Line::from(vec![
+                Span::raw("Suffix : "),
+                Span::styled(&app.suffix, Style::default().fg(Color::Magenta)),
+            ]),
+            Line::from(vec![
+                Span::raw("Case   : "),
+                Span::styled(cs_text, Style::default().fg(Color::Magenta)),
+            ]),
+            Line::from(""),
+            Line::from(vec![Span::styled(
+                "Searching...",
+                Style::default()
+                    .fg(Color::Green)
+                    .add_modifier(Modifier::RAPID_BLINK),
+            )]),
+        ];
+
+        let config_block = Paragraph::new(config_text)
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title(" Configuration "),
+            )
+            .alignment(Alignment::Left);
+        f.render_widget(config_block, stats_chunks[0]);
+
+        // Stats Block
+        let stats_text = vec![
+            Line::from(vec![
+                Span::raw("Attempts : "),
+                Span::styled(
+                    format!("{}", attempts),
+                    Style::default()
+                        .fg(Color::White)
+                        .add_modifier(Modifier::BOLD),
+                ),
+            ]),
+            Line::from(vec![
+                Span::raw("Speed    : "),
+                Span::styled(
+                    format!("{} keys/s", speed),
+                    Style::default().fg(Color::Cyan),
+                ),
+            ]),
+            Line::from(vec![
+                Span::raw("Time     : "),
+                Span::styled(format!("{}s", elapsed), Style::default().fg(Color::Gray)),
+            ]),
+        ];
+
+        let stats = Paragraph::new(stats_text)
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title(" Real-time Statistics "),
+            )
+            .alignment(Alignment::Left);
+
+        f.render_widget(stats, stats_chunks[1]);
+    }
+}
