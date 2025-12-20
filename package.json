@@ -2,9 +2,6 @@
   "name": "vanity_crypto",
   "version": "0.1.0",
   "description": "High-performance, secure, and beautiful Crypto vanity address generator",
-  "directories": {
-    "test": "tests"
-  },
   "scripts": {
     "prepare": "husky"
   },
@@ -13,9 +10,8 @@
     "url": "git+https://github.com/athexweb3/vanity_crypto.git"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
+  "author": "Athex Web3",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/athexweb3/vanity_crypto/issues"
   },
