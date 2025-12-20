@@ -28,11 +28,24 @@ def run_fuzz_test(count=100):
     # Path to binary (assuming debug build for dev)
     # Move up two levels from 'tests/verify_validate' to project root
     project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    binary_path = os.path.join(project_root, "target/debug/vanity_crypto")
+    
+    binary_name = "vanity_crypto"
+    if os.name == 'nt':
+        binary_name += ".exe"
+
+    binary_path = os.path.join(project_root, "target", "debug", binary_name)
     
     if not os.path.exists(binary_path):
         print(f"[ERROR] Binary not found at: {binary_path}")
         print("Run 'cargo build' first.")
+        # Try to list directory to help debugging
+        debug_dir = os.path.join(project_root, "target", "debug")
+        if os.path.exists(debug_dir):
+            print(f"Contents of {debug_dir}:")
+            try:
+                print(os.listdir(debug_dir))
+            except:
+                pass
         sys.exit(1)
 
     print(f"   Using binary: {binary_path}")
