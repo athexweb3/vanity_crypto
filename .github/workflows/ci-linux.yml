@@ -1,0 +1,37 @@
+name: "Linux CI"
+
+on:
+  push:
+    branches: [ "master", "main" ]
+  pull_request:
+    branches: [ "master", "main" ]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test-linux:
+    name: Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+
+      - name: Check Formatting
+        run: cargo fmt -- --check
+
+      - name: Linting (Clippy)
+        run: cargo clippy -- -D warnings
+
+      - name: Build Debug Binary
+        run: cargo build
+
+      - name: Run Rust Tests
+        run: cargo test --verbose
+
+      - name: Run Fuzz Verification Suite (1000 Keys)
+        run: python tests/verify_validate/fuzz_test.py 1000

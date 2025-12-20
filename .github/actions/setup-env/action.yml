@@ -1,0 +1,20 @@
+name: "Setup Environment"
+description: "Installs Rust, Python, and dependencies"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: clippy, rustfmt
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Install Verification Deps
+      shell: bash
+      run: |
+        pip install -r tests/verify_validate/requirements.txt
