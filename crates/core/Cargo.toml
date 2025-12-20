@@ -1,0 +1,16 @@
+[package]
+name = "vanity_core"
+version = "0.1.0"
+authors = { workspace = true }
+edition = { workspace = true }
+license = { workspace = true }
+repository = { workspace = true }
+homepage = { workspace = true }
+description = "Core logical types for vanity_crypto"
+
+[dependencies]
+thiserror = { workspace = true }
+hex = { workspace = true }
+k256 = { workspace = true }
+sha3 = { workspace = true }
+rand = { workspace = true }
