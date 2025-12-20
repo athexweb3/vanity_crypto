@@ -25,6 +25,7 @@ sha3 = "0.10"
 thiserror = "2.0"
 tokio = { version = "1.42", features = ["full"] }
 
+
 # Internal crates
 vanity_core = { path = "crates/core" }
 vanity_wallet = { path = "crates/wallet" }
