@@ -26,12 +26,11 @@ fn benchmark_key_generation(c: &mut Criterion) {
         b.iter(|| {
             // Setup similar to the loop body
             use k256::ecdsa::{SigningKey, VerifyingKey};
-            use rand::{rngs::OsRng, RngCore};
+
             use sha3::{Digest, Keccak256};
 
-            let mut rng = OsRng;
-            let mut bytes = [0u8; 32];
-            rng.fill_bytes(&mut bytes);
+            // OsRng is used implicitly by random
+            let bytes: [u8; 32] = rand::random();
 
             let signing_key = SigningKey::from_bytes(&bytes.into()).unwrap();
             let verifying_key = VerifyingKey::from(&signing_key);
