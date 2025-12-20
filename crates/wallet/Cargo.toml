@@ -19,7 +19,7 @@ hex = { workspace = true }
 
 [dev-dependencies]
 proptest = { version = "1.9.0", features = ["proptest-macro"] }
-criterion = "0.5"
+criterion = "0.8"
 
 [[bench]]
 name = "benchmark"
