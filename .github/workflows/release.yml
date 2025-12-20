@@ -73,8 +73,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+            homebrew/vanity_crypto.rb
+            scoop/vanity_crypto.json
+            SHA256SUMS.asc
+            SHA256SUMS
+
   generate-manifests:
-    name: Generate Package Manifests
+    name: Generate Package Manifests & Sign
     needs: build-and-release
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
@@ -87,59 +92,69 @@ jobs:
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
       - name: Download all release assets
-        # We can't easily download from the release just created in the same workflow standardly 
-        # without a persistent artifact or calling the API.
-        # EASIER: We upload artifacts in the previous job, then download here.
         uses: actions/download-artifact@v7
-        # But wait, softprops/action-gh-release uploads to the Release page, not Actions Artifacts.
-        # We should ALSO upload to Actions Artifacts in the build job to make them available here.
-        # Instead of modifying the build job matrix (complex), let's use the GH CLI to fetch from the release we just made.
-        # It takes a few seconds for assets to appear.
-        
+
       - name: Wait for assets (Sleep)
         run: sleep 10
 
-      - name: Calculate Checksums & Update Manifests
+      - name: Calculate Checksums, Sign, & Update Manifests
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ steps.get_version.outputs.VERSION }}
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         run: |
           # 1. Download assets from the release
           gh release download v$VERSION -p "vc-*"
           
-          # 2. Calculate Hashes
-          SHA_LINUX=$(sha256sum vc-linux-amd64 | awk '{print $1}')
-          SHA_MACOS=$(sha256sum vc-macos-arm64 | awk '{print $1}')
-          SHA_WIN=$(sha256sum vc-windows-amd64.exe | awk '{print $1}')
+          # 2. Calculate Hashes & Create SHA256SUMS
+          sha256sum vc-* > SHA256SUMS
+          cat SHA256SUMS
           
-          echo "Linux SHA: $SHA_LINUX"
-          echo "MacOS SHA: $SHA_MACOS"
-          echo "Win SHA:   $SHA_WIN"
+          SHA_LINUX=$(grep "vc-linux-amd64" SHA256SUMS | awk '{print $1}')
+          SHA_MACOS=$(grep "vc-macos-arm64" SHA256SUMS | awk '{print $1}')
+          SHA_WIN=$(grep "vc-windows-amd64.exe" SHA256SUMS | awk '{print $1}')
           
-          # 3. Update Homebrew Formula
+          # 3. GPG Signing (Fail-safe)
+          if [ -n "$GPG_PRIVATE_KEY" ]; then
+            echo "Importing GPG Key..."
+            echo "$GPG_PRIVATE_KEY" | gpg --import
+            
+            echo "Signing SHA256SUMS..."
+            # Use --pinentry-mode loopback for automation if simple passphrase args are tricky, 
+            # but usually --passphrase-fd 0 works well.
+            echo "$GPG_PASSPHRASE" | gpg --detach-sign --armor --passphrase-fd 0 --pinentry-mode loopback --output SHA256SUMS.asc SHA256SUMS
+            echo "Signing Complete."
+          else
+            echo "skipping GPG signing (No GPG_PRIVATE_KEY secret found)."
+            touch SHA256SUMS.asc # verify empty or skip upload logic? 
+            # Better to just not produce the file and let upload step warn or simply ignore missing.
+            # but softprops/action-gh-release with pattern might fail if file missing?
+            # Let's clean up: remove .asc if not signed.
+            rm -f SHA256SUMS.asc
+          fi
+          
+          # 4. Update Homebrew Formula
           sed -i "s/REPLACE_WITH_ACTUAL_SHA256_AFTER_RELEASE_BUILD_LINUX/$SHA_LINUX/" homebrew/vanity_crypto.rb
           sed -i "s/REPLACE_WITH_ACTUAL_SHA256_AFTER_RELEASE_BUILD_MACOS/$SHA_MACOS/" homebrew/vanity_crypto.rb
           sed -i "s/version \"0.1.0\"/version \"$VERSION\"/" homebrew/vanity_crypto.rb
           sed -i "s/v0.1.0/v$VERSION/g" homebrew/vanity_crypto.rb
           sed -i "s/vanity_crypto-/vc-/g" homebrew/vanity_crypto.rb
           
-          # 4. Update Scoop Manifest
+          # 5. Update Scoop Manifest
           sed -i "s/REPLACE_WITH_ACTUAL_SHA256_AFTER_RELEASE_BUILD/$SHA_WIN/" scoop/vanity_crypto.json
           sed -i "s/\"version\": \"0.1.0\"/\"version\": \"$VERSION\"/" scoop/vanity_crypto.json
           sed -i "s/v0.1.0/v$VERSION/g" scoop/vanity_crypto.json
           sed -i "s/vanity_crypto-/vc-/g" scoop/vanity_crypto.json
-          
-          # 5. Display for log
-          cat homebrew/vanity_crypto.rb
-          cat scoop/vanity_crypto.json
 
-
-      - name: Upload Manifests to Release
+      - name: Upload Manifests & Signatures to Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
             homebrew/vanity_crypto.rb
             scoop/vanity_crypto.json
+            SHA256SUMS
+            SHA256SUMS.asc
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -148,6 +163,9 @@ jobs:
     needs: build-and-release
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -171,6 +189,6 @@ jobs:
           fi
 
       - name: Publish to NPM
-        run: npm publish
+        run: npm publish --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
