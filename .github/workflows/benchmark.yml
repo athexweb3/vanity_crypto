@@ -21,8 +21,8 @@ jobs:
         uses: ./.github/actions/setup-env
 
       - name: Run Benchmarks
-        # Runs benchmarks and saves output to a file
-        run: cargo bench -p vanity_wallet -- --output-format bencher | tee benchmark_results.txt
+        # Runs specific benchmark target to avoid passing args to unittests
+        run: cargo bench -p vanity_wallet --bench benchmark -- --output-format bencher | tee benchmark_results.txt
       
       - name: Store Benchmark Result
         uses: benchmark-action/github-action-benchmark@v1

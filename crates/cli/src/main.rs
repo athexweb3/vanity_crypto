@@ -42,8 +42,8 @@ fn main() {
     let start_immediately = !args.prefix.is_empty() || !args.suffix.is_empty();
 
     // Validate if provided
-    let prefix = if args.prefix.starts_with("0x") {
-        args.prefix[2..].to_string()
+    let prefix = if let Some(stripped) = args.prefix.strip_prefix("0x") {
+        stripped.to_string()
     } else {
         args.prefix.clone()
     };
@@ -70,8 +70,8 @@ fn main() {
     // The closure spawns the worker thread. Perfect.
 
     let on_search_start = move |p_prefix: String, p_suffix: String, p_case: bool| {
-        let p_prefix = if p_prefix.starts_with("0x") {
-            p_prefix[2..].to_string()
+        let p_prefix = if let Some(stripped) = p_prefix.strip_prefix("0x") {
+            stripped.to_string()
         } else {
             p_prefix
         };
