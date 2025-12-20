@@ -5,6 +5,9 @@
 ![Version](https://img.shields.io/github/v/release/athexweb3/vanity_crypto?label=version)
 [![Best Practices](https://bestpractices.coreinfrastructure.org/projects/8157/badge)](https://bestpractices.coreinfrastructure.org/projects/8157)
 ![EIP-55](https://img.shields.io/badge/EIP--55-Compliant-success)
+[![npm](https://img.shields.io/npm/v/vanity_crypto.svg)](https://www.npmjs.com/package/vanity_crypto)
+[![Homebrew](https://img.shields.io/badge/homebrew-supported-orange)](https://github.com/athexweb3/vanity_crypto/tree/main/homebrew)
+[![Scoop](https://img.shields.io/badge/scoop-supported-blue)](https://github.com/athexweb3/vanity_crypto/tree/main/scoop)
 
 ![Linux CI](https://github.com/athexweb3/vanity_crypto/actions/workflows/ci-linux.yml/badge.svg)
 ![macOS CI](https://github.com/athexweb3/vanity_crypto/actions/workflows/ci-macos.yml/badge.svg)
