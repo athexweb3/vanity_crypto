@@ -10,7 +10,7 @@
 ![macOS CI](https://github.com/athexweb3/vanity_crypto/actions/workflows/ci-macos.yml/badge.svg)
 ![Windows CI](https://github.com/athexweb3/vanity_crypto/actions/workflows/ci-windows.yml/badge.svg)
 ![Security Audit](https://github.com/athexweb3/vanity_crypto/actions/workflows/security.yml/badge.svg)
-![CodeQL](https://github.com/athexweb3/vanity_crypto/actions/workflows/codeql.yml/badge.svg)
+
 ![Docker Build](https://github.com/athexweb3/vanity_crypto/actions/workflows/docker-publish.yml/badge.svg)
 ![Benchmark](https://github.com/athexweb3/vanity_crypto/actions/workflows/benchmark.yml/badge.svg)
 

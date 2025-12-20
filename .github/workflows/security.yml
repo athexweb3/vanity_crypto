@@ -3,6 +3,11 @@ name: "Security Audit"
 on:
   push:
     branches: [ "master", "main" ]
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+      - 'docs/**'
+      - '.gitignore'
   schedule:
     - cron: '0 0 * * *'  # Run daily at midnight
 
