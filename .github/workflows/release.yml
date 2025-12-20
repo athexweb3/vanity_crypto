@@ -32,6 +32,24 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Verify Version Consistency
+        shell: bash
+        run: |
+          # 1. Get version from Tag (e.g., v0.1.0 -> 0.1.0)
+          TAG_VERSION=${GITHUB_REF#refs/tags/v}
+          
+          # 2. Get version from Cargo.toml
+          # We use a simple grep because we don't want to install cargo-toml utilities just for this
+          CARGO_VERSION=$(grep -m 1 '^version = ' Cargo.toml | cut -d '"' -f 2)
+
+          echo "Tag Version: $TAG_VERSION"
+          echo "Cargo Version: $CARGO_VERSION"
+
+          if [ "$TAG_VERSION" != "$CARGO_VERSION" ]; then
+            echo "::error::Version Mismatch! Tag is v$TAG_VERSION but Cargo.toml is $CARGO_VERSION"
+            exit 1
+          fi
+
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:

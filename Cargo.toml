@@ -5,7 +5,7 @@ members = ["crates/*"]
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
-authors = ["athexweb3"]
+authors = ["Athex Web3"]
 description = "A high-performance, secure, and beautiful Ethereum vanity address generator"
 repository = "https://github.com/athexweb3/vanity_crypto"
 homepage = "https://github.com/athexweb3/vanity_crypto"
