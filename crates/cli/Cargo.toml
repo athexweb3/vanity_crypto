@@ -9,10 +9,10 @@ homepage = { workspace = true }
 description = { workspace = true }
 
 # Binary name when built
-default-run = "vanity_crypto"
+default-run = "vc"
 
 [[bin]]
-name = "vanity_crypto"
+name = "vc"
 path = "src/main.rs"
 
 [dependencies]

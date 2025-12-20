@@ -39,6 +39,7 @@ The application includes an independent verification suite rooted in the Python 
 git clone https://github.com/athexweb3/vanity_crypto.git
 cd vanity_crypto
 cargo build --release
+# Binary is located at target/release/vc
 ```
 
 ## Usage
@@ -46,19 +47,19 @@ cargo build --release
 ### Interactive Mode
 Launch the TUI dashboard:
 ```bash
-cargo run --release -- --prefix 0xABC
+./target/release/vc --prefix 0xABC
 ```
 
 ### Headless CLI Mode
 For server environments or scripted automation:
 ```bash
-cargo run --release -- --prefix 0xABC --no-tui
+./target/release/vc --prefix 0xABC --no-tui
 ```
 
 ### Batch Generation
 For fuzzing and large-scale key generation:
 ```bash
-cargo run --release -- --generate-batch 1000
+./target/release/vc --generate-batch 1000
 ```
 
 ## Security & Verification

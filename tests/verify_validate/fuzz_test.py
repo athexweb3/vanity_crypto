@@ -29,7 +29,7 @@ def run_fuzz_test(count=100):
     # Move up two levels from 'tests/verify_validate' to project root
     project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     
-    binary_name = "vanity_crypto"
+    binary_name = "vc"
     if os.name == 'nt':
         binary_name += ".exe"
 
