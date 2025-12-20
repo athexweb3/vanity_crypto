@@ -173,7 +173,7 @@ fn render_config(f: &mut Frame, app: &mut App, area: ratatui::layout::Rect) {
     let btn_label = if app.input_focus_index == 3 {
         format!("{}[ START ENGINE ]", cursor_symbol(3))
     } else {
-        format!("  [ START ENGINE ]")
+        "  [ START ENGINE ]".to_string()
     };
     let btn_p = Paragraph::new(btn_label).style(btn_style);
     f.render_widget(btn_p, chunks[5]); // Index 5

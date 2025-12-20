@@ -1,4 +1,4 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, Criterion};
 use vanity_core::VanityGenerator;
 use vanity_wallet::EthereumVanityGenerator;
 
@@ -41,7 +41,7 @@ fn benchmark_key_generation(c: &mut Criterion) {
             hasher.update(public_key_bytes);
             let hash = hasher.finalize();
 
-            black_box(hash);
+            std::hint::black_box(hash);
         })
     });
 }
