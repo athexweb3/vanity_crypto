@@ -1,0 +1,28 @@
+{
+  "name": "vanity_crypto",
+  "version": "0.1.0",
+  "description": "High-performance, secure, and beautiful Crypto vanity address generator",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "prepare": "husky"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/athexweb3/vanity_crypto.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/athexweb3/vanity_crypto/issues"
+  },
+  "homepage": "https://github.com/athexweb3/vanity_crypto#readme",
+  "devDependencies": {
+    "@commitlint/cli": "^20.2.0",
+    "@commitlint/config-conventional": "^20.2.0",
+    "husky": "^9.1.7"
+  }
+}
