@@ -71,3 +71,71 @@ jobs:
           files: ${{ matrix.asset_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  generate-manifests:
+    name: Generate Package Manifests
+    needs: build-and-release
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get Version
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Download all release assets
+        # We can't easily download from the release just created in the same workflow standardly 
+        # without a persistent artifact or calling the API.
+        # EASIER: We upload artifacts in the previous job, then download here.
+        uses: actions/download-artifact@v4
+        # But wait, softprops/action-gh-release uploads to the Release page, not Actions Artifacts.
+        # We should ALSO upload to Actions Artifacts in the build job to make them available here.
+        # Instead of modifying the build job matrix (complex), let's use the GH CLI to fetch from the release we just made.
+        # It takes a few seconds for assets to appear.
+        
+      - name: Wait for assets (Sleep)
+        run: sleep 10
+
+      - name: Calculate Checksums & Update Manifests
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.get_version.outputs.VERSION }}
+        run: |
+          # 1. Download assets from the release
+          gh release download v$VERSION -p "vanity_crypto-*"
+          
+          # 2. Calculate Hashes
+          SHA_LINUX=$(sha256sum vanity_crypto-linux-amd64 | awk '{print $1}')
+          SHA_MACOS=$(sha256sum vanity_crypto-macos-arm64 | awk '{print $1}')
+          SHA_WIN=$(sha256sum vanity_crypto-windows-amd64.exe | awk '{print $1}')
+          
+          echo "Linux SHA: $SHA_LINUX"
+          echo "MacOS SHA: $SHA_MACOS"
+          echo "Win SHA:   $SHA_WIN"
+          
+          # 3. Update Homebrew Formula
+          sed -i "s/REPLACE_WITH_ACTUAL_SHA256_AFTER_RELEASE_BUILD_LINUX/$SHA_LINUX/" homebrew/vanity_crypto.rb
+          sed -i "s/REPLACE_WITH_ACTUAL_SHA256_AFTER_RELEASE_BUILD_MACOS/$SHA_MACOS/" homebrew/vanity_crypto.rb
+          # Also ensure URL version is correct (it uses templated logic in my previous edit? No, hardcoded 0.1.0)
+          sed -i "s/version \"0.1.0\"/version \"$VERSION\"/" homebrew/vanity_crypto.rb
+          sed -i "s/v0.1.0/v$VERSION/g" homebrew/vanity_crypto.rb
+          
+          # 4. Update Scoop Manifest
+          sed -i "s/REPLACE_WITH_ACTUAL_SHA256_AFTER_RELEASE_BUILD/$SHA_WIN/" scoop/vanity_crypto.json
+          sed -i "s/\"version\": \"0.1.0\"/\"version\": \"$VERSION\"/" scoop/vanity_crypto.json
+          sed -i "s/v0.1.0/v$VERSION/g" scoop/vanity_crypto.json
+          
+          # 5. Display for log
+          cat homebrew/vanity_crypto.rb
+          cat scoop/vanity_crypto.json
+
+      - name: Upload Manifests to Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            homebrew/vanity_crypto.rb
+            scoop/vanity_crypto.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
