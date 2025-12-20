@@ -1,24 +1,41 @@
-# Vanity Crypto 🛡️
-
-A high-performance, secure, and beautiful Ethereum vanity address generator written in Rust.
+# Vanity Crypto
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Language](https://img.shields.io/badge/language-Rust-orange.svg)
-![Status](https://img.shields.io/badge/status-stable-green.svg)
+![Version](https://img.shields.io/github/v/release/athexweb3/vanity_crypto?label=version)
 
-## ✨ Features
+| Platform | Build Status |
+| :--- | :--- |
+| **Linux** | ![Linux CI](https://github.com/athexweb3/vanity_crypto/actions/workflows/ci-linux.yml/badge.svg) |
+| **macOS** | ![macOS CI](https://github.com/athexweb3/vanity_crypto/actions/workflows/ci-macos.yml/badge.svg) |
+| **Windows** | ![Windows CI](https://github.com/athexweb3/vanity_crypto/actions/workflows/ci-windows.yml/badge.svg) |
 
-- **🚀 High Performance**: Multi-threaded generation utilizing all CPU cores (built on `rayon`).
-- **🖥️ Interactive TUI**: Beautiful terminal dashboard to track progress, speed, and probability (built on `ratatui`).
-- **🛡️ Cryptographically Secure**: Uses audited `k256` (ECDSA) and `sha3` (Keccak-256) libraries.
-- **✅ Verifiable**: Includes automated Python verification scripts to mathematically prove key validity.
-- **✨ Copy-Friendly**: Smart output formatting for easy, safe private key copying.
+| Security | Status |
+| :--- | :--- |
+| **Audit** | ![Security Audit](https://github.com/athexweb3/vanity_crypto/actions/workflows/security.yml/badge.svg) |
+| **CodeQL** | ![CodeQL](https://github.com/athexweb3/vanity_crypto/actions/workflows/codeql.yml/badge.svg) |
+| **OpenSSF** | [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/1/badge)](https://bestpractices.coreinfrastructure.org/projects/1) |
+| **EIP-55** | ![EIP-55](https://img.shields.io/badge/EIP--55-Compliant-success) |
 
-## 📦 Installation
+## Overview
+
+Vanity Crypto is a high-performance, cryptographically secure Ethereum vanity address generator implementation in Rust. It leverages parallel processing architectures (`rayon`) to maximize address generation throughput while adhering to strict security standards.
+
+The application includes an independent verification suite rooted in the Python `eth-account` library, ensuring that all generated cryptographic material is mathematically valid and compliant with the Ethereum Yellow Paper specifications.
+
+## Key Features
+
+*   **Multi-Threaded Performance**: Utilizes all available CPU cores for search operations.
+*   **Cryptographic Soundness**: Built upon audited `k256` (ECDSA) and `sha3` (Keccak-256) libraries from the RustCrypto ecosystem.
+*   **Automated Verification**: Integrated Python verification pipeline that cross-references Rust-generated keys with standard Ethereum implementations.
+*   **Terminal User Interface (TUI)**: Real-time telemetry dashboard visualizing hash rate, probabilities, and search progress.
+*   **Cross-Platform**: Fully supported on Linux, macOS, and Windows.
+
+## Installation
 
 ### Prerequisites
-- [Rust Toolchain](https://rustup.rs/) (cargo)
-- Python 3 (optional, for verification)
+*   Rust Toolchain (latest stable)
+*   Python 3.10+ (for verification suite)
 
 ### Build from Source
 ```bash
@@ -27,52 +44,46 @@ cd vanity_crypto
 cargo build --release
 ```
 
-## 🚀 Usage
+## Usage
 
-### Interactive Mode (Recommended)
-Run the tool without arguments or with a starting prefix to enter the interactive dashboard:
-
+### Interactive Mode
+Launch the TUI dashboard:
 ```bash
 cargo run --release -- --prefix 0xABC
 ```
-*Press `q` to quit or stop searching.*
 
 ### Headless CLI Mode
-For scripting or servers, use the `--no-tui` flag:
-
+For server environments or scripted automation:
 ```bash
 cargo run --release -- --prefix 0xABC --no-tui
 ```
 
-### Batch Generation (Fuzzing/Testing)
-Generate raw JSON keys for testing:
+### Batch Generation
+For fuzzing and large-scale key generation:
 ```bash
-cargo run --release -- --generate-batch 5
+cargo run --release -- --generate-batch 1000
 ```
 
-## 🔒 Security & Verification
+## Security & Verification
 
-Security is our #1 priority.
+This project adheres to a "Verify, Do Not Trust" methodology.
 
-1.  **Audited Libraries**: We do not roll our own crypto. We use `RustCrypto/elliptic-curves` and `RustCrypto/hashes`.
-2.  **Automated Verification**: Every generated key is automatically verified against the standard `eth-account` Python library if installed. [See SECURITY.md](SECURITY.md) for full audit details.
-3.  **Correctness Proof**:
-    Run our fuzzing suite to verify thousands of keys:
-    ```bash
-    python3 tests/verify_validate/fuzz_test.py 1000
-    ```
+### independent Verification
+Every release includes a verification suite located in `tests/verify_validate/`. We recommend users perform independent audits of the binary's output.
 
-## ⚠️ Security Warning
+To verify the generator's correctness against the `eth-account` reference implementation:
+```bash
+python3 tests/verify_validate/fuzz_test.py 1000
+```
 
-**Treat your private keys with extreme caution.**
-- We recommend running this tool on an **air-gapped (offline)** machine for significant assets.
-- Always verify the generated key with a small transaction before sending large amounts.
-- **NEVER** share your private key or screenshot the output.
+### Supply Chain Security
+*   **Dependencies**: All cryptographic dependencies are pinned and come from the `RustCrypto` organization.
+*   **Audits**: Continuous integration pipelines perform daily vulnerability scans using `cargo audit`.
 
-## 🤝 Contributing
+## Contributing
 
-Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct, and the process for submitting pull requests.
+We welcome contributions that align with our strict security and code quality standards. Please refer to `CONTRIBUTING.md` for the development workflow and `CODE_OF_CONDUCT.md` for community guidelines.
 
-## 📄 License
+## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License. See the `LICENSE` file for details.
