@@ -3,19 +3,16 @@
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Language](https://img.shields.io/badge/language-Rust-orange.svg)
 ![Version](https://img.shields.io/github/v/release/athexweb3/vanity_crypto?label=version)
+[![Best Practices](https://bestpractices.coreinfrastructure.org/projects/8157/badge)](https://bestpractices.coreinfrastructure.org/projects/8157)
+![EIP-55](https://img.shields.io/badge/EIP--55-Compliant-success)
 
-| Platform | Build Status |
-| :--- | :--- |
-| **Linux** | ![Linux CI](https://github.com/athexweb3/vanity_crypto/actions/workflows/ci-linux.yml/badge.svg) |
-| **macOS** | ![macOS CI](https://github.com/athexweb3/vanity_crypto/actions/workflows/ci-macos.yml/badge.svg) |
-| **Windows** | ![Windows CI](https://github.com/athexweb3/vanity_crypto/actions/workflows/ci-windows.yml/badge.svg) |
-
-| Security | Status |
-| :--- | :--- |
-| **Audit** | ![Security Audit](https://github.com/athexweb3/vanity_crypto/actions/workflows/security.yml/badge.svg) |
-| **CodeQL** | ![CodeQL](https://github.com/athexweb3/vanity_crypto/actions/workflows/codeql.yml/badge.svg) |
-| **OpenSSF** | [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/1/badge)](https://bestpractices.coreinfrastructure.org/projects/1) |
-| **EIP-55** | ![EIP-55](https://img.shields.io/badge/EIP--55-Compliant-success) |
+![Linux CI](https://github.com/athexweb3/vanity_crypto/actions/workflows/ci-linux.yml/badge.svg)
+![macOS CI](https://github.com/athexweb3/vanity_crypto/actions/workflows/ci-macos.yml/badge.svg)
+![Windows CI](https://github.com/athexweb3/vanity_crypto/actions/workflows/ci-windows.yml/badge.svg)
+![Security Audit](https://github.com/athexweb3/vanity_crypto/actions/workflows/security.yml/badge.svg)
+![CodeQL](https://github.com/athexweb3/vanity_crypto/actions/workflows/codeql.yml/badge.svg)
+![Docker Build](https://github.com/athexweb3/vanity_crypto/actions/workflows/docker-publish.yml/badge.svg)
+![Benchmark](https://github.com/athexweb3/vanity_crypto/actions/workflows/benchmark.yml/badge.svg)
 
 ## Overview
 
