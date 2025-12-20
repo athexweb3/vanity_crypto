@@ -65,7 +65,7 @@ jobs:
         shell: bash
 
       - name: Upload Release Asset
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: ${{ matrix.asset_name }}
@@ -132,7 +132,7 @@ jobs:
           cat scoop/vanity_crypto.json
 
       - name: Upload Manifests to Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: |
             homebrew/vanity_crypto.rb
