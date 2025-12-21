@@ -100,4 +100,45 @@ mod tests {
             "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed"
         );
     }
+
+    use proptest::prelude::*;
+
+    proptest! {
+        #[test]
+        fn test_eip55_invariant(bytes in proptest::array::uniform20(0u8..255)) {
+            let addr = Address(bytes);
+            let checksummed = addr.to_checksum_display();
+
+            // 1. Length Check
+            assert_eq!(checksummed.len(), 42);
+            assert!(checksummed.starts_with("0x"));
+
+            // 2. Case Invariance
+            assert_eq!(
+                checksummed.to_lowercase(),
+                format!("0x{}", hex::encode(bytes))
+            );
+
+            // 3. Logic Check (Self-Consistent)
+            let lower_hex = hex::encode(bytes);
+            let mut hasher = sha3::Keccak256::new();
+            use sha3::Digest;
+            hasher.update(lower_hex.as_bytes());
+            let hash = hasher.finalize();
+            let hash_hex = hex::encode(hash);
+
+            for (i, c) in lower_hex.chars().enumerate() {
+                let hash_nibble = hash_hex.chars().nth(i).unwrap();
+                let output_char = checksummed.chars().nth(i + 2).unwrap(); // +2 for 0x
+
+                if hash_nibble >= '8' {
+                    assert!(output_char.is_uppercase() || !c.is_alphabetic(),
+                        "Char at {} should be uppercase. Hash: {}, Addr: {}", i, hash_nibble, c);
+                } else {
+                    assert!(output_char.is_lowercase() || !c.is_alphabetic(),
+                        "Char at {} should be lowercase. Hash: {}, Addr: {}", i, hash_nibble, c);
+                }
+            }
+        }
+    }
 }

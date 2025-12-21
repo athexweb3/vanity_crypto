@@ -1750,6 +1750,7 @@ version = "0.1.0-beta.4"
 dependencies = [
  "hex",
  "k256",
+ "proptest",
  "rand",
  "sha3",
  "thiserror",
