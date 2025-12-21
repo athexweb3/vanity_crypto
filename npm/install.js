@@ -33,6 +33,13 @@ if (platform === 'win32') {
         console.error('Unsupported architecture for Linux: ' + arch);
         process.exit(1);
     }
+} else if (platform === 'freebsd') {
+    if (arch === 'x64') {
+        assetName = `vc-freebsd-amd64`;
+    } else {
+        console.error(`Unsupported architecture for FreeBSD: ${arch}`);
+        process.exit(1);
+    }
 } else {
     console.error('Unsupported platform: ' + platform);
     process.exit(1);
