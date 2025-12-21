@@ -18,10 +18,6 @@ if (platform === 'win32') {
     assetName = `vc-windows-amd64.exe`;
     binaryExtension = '.exe';
 } else if (platform === 'darwin') {
-    // Assuming arm64 for now as per release.yml, but should support x64 if we build it.
-    // RELEASE.yml currently only builds macos-arm64 (apple silicon). 
-    // If running on Intel Mac, this might fail unless Rosetta handles it or we add x64 build.
-    // For now, strict mapping to what we release.
     if (arch === 'arm64') {
         assetName = `vc-macos-arm64`;
     } else if (arch === 'x64') {
@@ -52,29 +48,49 @@ if (!fs.existsSync(binDir)) {
 
 console.log(`Downloading ${assetName} from ${url}...`);
 
-const file = fs.createWriteStream(binPath);
+function download(downloadUrl, dest) {
+    const file = fs.createWriteStream(dest);
 
-https.get(url, (response) => {
-    if (response.statusCode !== 200) {
-        console.error(`Failed to download binary: HTTP ${response.statusCode}`);
-        if (response.statusCode === 404) {
-            console.error("Release not found. Please ensure the release exists on GitHub.");
+    const request = https.get(downloadUrl, (response) => {
+        // Handle Redirects (GitHub Releases -> S3)
+        if (response.statusCode === 302 || response.statusCode === 301) {
+            console.log(`Following redirect to ${response.headers.location}...`);
+            file.close();
+            fs.unlinkSync(dest); // Remove empty file from failed attempt
+            download(response.headers.location, dest); // Recursive call
+            return;
         }
-        process.exit(1);
-    }
 
-    response.pipe(file);
+        if (response.statusCode !== 200) {
+            console.error(`Failed to download binary: HTTP ${response.statusCode}`);
+            if (response.statusCode === 404) {
+                console.error(`Release not found for version ${VERSION}. Make sure the GitHub release exists.`);
+            }
+            file.close();
+            fs.unlinkSync(dest);
+            process.exit(1);
+        }
 
-    file.on('finish', () => {
-        file.close(() => {
-            console.log('Download completed.');
+        response.pipe(file);
+
+        file.on('finish', () => {
+            file.close();
+            console.log('Download complete!');
+
+            // Make it executable
             if (platform !== 'win32') {
-                execSync(`chmod +x ${binPath}`);
+                try {
+                    execSync(`chmod +x ${dest}`);
+                } catch (e) {
+                    console.error('Failed to make binary executable: ' + e.message);
+                }
             }
         });
+    }).on('error', (err) => {
+        fs.unlink(dest, () => { }); // Verify deletion
+        console.error('Error downloading binary:', err.message);
+        process.exit(1);
     });
-}).on('error', (err) => {
-    fs.unlink(binPath, () => { }); // Delete the file async.
-    console.error('Error downloading binary: ' + err.message);
-    process.exit(1);
-});
+}
+
+download(url, binPath);
