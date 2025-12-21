@@ -93,7 +93,10 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4 # Switching to v4 to be safe/standard
+        with:
+          ref: main
+          fetch-depth: 0
 
       - name: Get Version
         id: get_version
@@ -153,9 +156,10 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config pull.rebase false
           git add homebrew/vanity_crypto.rb scoop/vanity_crypto.json
           git commit -m "chore: update release manifests [skip ci]" || echo "No changes to commit"
-          git pull origin main # Simple pull to catch any last-second merges
+          git pull origin main
           git push origin HEAD:main
 
       - name: Upload Signatures to Release
