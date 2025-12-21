@@ -161,10 +161,10 @@ jobs:
           cp homebrew/vanity_crypto.rb ../vanity_crypto.rb.tmp
           cp scoop/vanity_crypto.json ../vanity_crypto.json.tmp
           
-          # 2. Switch explicitly to proper main branch
+          # 2. Switch explicitly to proper main branch and Sync
           git fetch origin main
-          git checkout main
-          git pull origin main --rebase
+          git checkout -f main # Force checkout to discard current dirty state (we have backups)
+          git pull origin main --rebase # Pull clean
           
           # 3. Restore updates
           mv ../vanity_crypto.rb.tmp homebrew/vanity_crypto.rb
