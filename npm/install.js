@@ -3,7 +3,8 @@ const path = require('path');
 const https = require('https');
 const { execSync } = require('child_process');
 
-const VERSION = 'v0.1.0'; // Must match the release tag
+const pkg = require('../package.json');
+const VERSION = `v${pkg.version}`; // Dynamic version from package.json
 const REPO = 'athexweb3/vanity_crypto';
 const BIN_NAME = 'vc';
 

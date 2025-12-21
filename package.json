@@ -1,14 +1,13 @@
 {
   "name": "vanity_crypto",
-  "version": "0.1.0",
+  "version": "0.1.0-alpha",
   "description": "High-performance, secure, and beautiful Crypto vanity address generator",
   "bin": {
     "vc": "npm/bin/vc"
   },
   "scripts": {
     "prepare": "husky",
-    "postinstall": "node npm/install.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "postinstall": "node npm/install.js"
   },
   "repository": {
     "type": "git",
