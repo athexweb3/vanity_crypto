@@ -5,13 +5,13 @@ class VanityCrypto < Formula
   
   if OS.mac? && Hardware::CPU.arm?
     url "https://github.com/athexweb3/vanity_crypto/releases/download/v#{version}/vc-macos-arm64"
-    sha256 "81f5cd7f27784dc47a3eac839ff3442a3b909a848182da22aca180667fc404b8" # MAC_ARM_SHA
+    sha256 "d28a97aeb9b230e33feede9f3e6428362c3999061acbfbf84a60b8c0e32a4ac2" # MAC_ARM_SHA
   elsif OS.mac? && Hardware::CPU.intel?
     url "https://github.com/athexweb3/vanity_crypto/releases/download/v#{version}/vc-macos-amd64"
-    sha256 "REPLACE_WITH_ACTUAL_SHA256_AFTER_RELEASE_BUILD_MACOS_INTEL" # MAC_INTEL_SHA
+    sha256 "494939e743b44c881723d9104ef1838657d8c691512319bbd2fb90befe508239" # MAC_INTEL_SHA
   elsif OS.linux?
     url "https://github.com/athexweb3/vanity_crypto/releases/download/v#{version}/vc-linux-amd64"
-    sha256 "25afe42080d96ca1d710f6f177283a5d12838f284c9aa11a91981930dc131df9" # LINUX_SHA
+    sha256 "9846e65f3a7801394cd2e635bdbd2e1a1771fa3e697434657d93fdc537aebbb4" # LINUX_SHA
   end
 
   def install
