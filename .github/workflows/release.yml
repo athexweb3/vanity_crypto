@@ -156,11 +156,24 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git config pull.rebase false
+          
+          # 1. Backup the updated manifests (they are currently on the detached HEAD or raw checkout)
+          cp homebrew/vanity_crypto.rb ../vanity_crypto.rb.tmp
+          cp scoop/vanity_crypto.json ../vanity_crypto.json.tmp
+          
+          # 2. Switch explicitly to proper main branch
+          git fetch origin main
+          git checkout main
+          git pull origin main --rebase
+          
+          # 3. Restore updates
+          mv ../vanity_crypto.rb.tmp homebrew/vanity_crypto.rb
+          mv ../vanity_crypto.json.tmp scoop/vanity_crypto.json
+          
+          # 4. Commit & Push
           git add homebrew/vanity_crypto.rb scoop/vanity_crypto.json
           git commit -m "chore: update release manifests [skip ci]" || echo "No changes to commit"
-          git pull origin main
-          git push origin HEAD:main
+          git push origin main
 
       - name: Upload Signatures to Release
         uses: softprops/action-gh-release@v2
