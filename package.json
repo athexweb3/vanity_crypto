@@ -7,7 +7,8 @@
   },
   "scripts": {
     "prepare": "husky",
-    "postinstall": "node npm/install.js"
+    "postinstall": "node npm/install.js",
+    "prepublishOnly": "node scripts/check-versions.js"
   },
   "repository": {
     "type": "git",
