@@ -73,11 +73,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-            homebrew/vanity_crypto.rb
-            scoop/vanity_crypto.json
-            SHA256SUMS.asc
-            SHA256SUMS
-
   generate-manifests:
     name: Generate Package Manifests & Sign
     needs: build-and-release
