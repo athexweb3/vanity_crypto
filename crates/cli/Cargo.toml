@@ -26,6 +26,6 @@ anyhow = { workspace = true }
 [dev-dependencies]
 assert_cmd = { workspace = true }
 predicates = { workspace = true }
-insta = { version = "1.34", features = ["yaml"] }
+insta = { workspace = true, features = ["yaml"] }
 
 

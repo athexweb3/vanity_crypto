@@ -9,7 +9,10 @@ fn test_help_snapshot() {
     cmd.arg("--help");
 
     // Snapshot the output.
-    insta::assert_snapshot!(String::from_utf8(cmd.output().unwrap().stdout).unwrap());
+    // Normalized for Windows CI (CRLF -> LF)
+    let output = cmd.output().unwrap().stdout;
+    let text = String::from_utf8(output).unwrap().replace("\r\n", "\n");
+    insta::assert_snapshot!(text);
 }
 
 #[test]
@@ -19,7 +22,9 @@ fn test_version_snapshot() {
     cmd.arg("--version");
 
     // Snapshot the output (e.g. "vanity_cli 0.1.0-beta.4")
-    insta::assert_snapshot!(String::from_utf8(cmd.output().unwrap().stdout).unwrap());
+    let output = cmd.output().unwrap().stdout;
+    let text = String::from_utf8(output).unwrap().replace("\r\n", "\n");
+    insta::assert_snapshot!(text);
 }
 
 #[test]
@@ -29,7 +34,9 @@ fn test_invalid_arg_snapshot() {
     cmd.arg("--this-flag-does-not-exist");
 
     // Check stderr for the error message
-    insta::assert_snapshot!(String::from_utf8(cmd.output().unwrap().stderr).unwrap());
+    let output = cmd.output().unwrap().stderr;
+    let text = String::from_utf8(output).unwrap().replace("\r\n", "\n");
+    insta::assert_snapshot!(text);
 }
 
 #[test]
