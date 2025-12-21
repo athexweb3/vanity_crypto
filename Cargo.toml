@@ -5,7 +5,7 @@ members = ["crates/*"]
 [workspace.package]
 version = "0.1.0-beta.4"
 edition = "2021"
-authors = ["Athex Web3"]
+authors = ["Athex Web3 <athexweb3@gmail.com>"]
 description = "A high-performance, secure, and beautiful Ethereum vanity address generator"
 repository = "https://github.com/athexweb3/vanity_crypto"
 homepage = "https://github.com/athexweb3/vanity_crypto"
@@ -24,6 +24,10 @@ rayon = "1.10"
 sha3 = "0.10"
 thiserror = "2.0"
 tokio = { version = "1.42", features = ["full"] }
+
+# Dev dependencies
+assert_cmd = "2.0"
+predicates = "3.1"
 
 
 # Internal crates
