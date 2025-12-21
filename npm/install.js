@@ -24,6 +24,8 @@ if (platform === 'win32') {
     // For now, strict mapping to what we release.
     if (arch === 'arm64') {
         assetName = `vc-macos-arm64`;
+    } else if (arch === 'x64') {
+        assetName = `vc-macos-amd64`;
     } else {
         console.error('Unsupported architecture for macOS: ' + arch);
         process.exit(1);

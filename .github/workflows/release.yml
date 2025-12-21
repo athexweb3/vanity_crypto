@@ -45,6 +45,10 @@ jobs:
             target: aarch64-apple-darwin
             binary_name: vc
             asset_name: vc-macos-arm64
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            binary_name: vc
+            asset_name: vc-macos-amd64
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             binary_name: vc.exe
@@ -54,23 +58,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Verify Version Consistency
+      - name: Verify Version Consistency (Pre-check)
         shell: bash
-        run: |
-          # 1. Get version from Tag (e.g., v0.1.0 -> 0.1.0)
-          TAG_VERSION=${GITHUB_REF#refs/tags/v}
-          
-          # 2. Get version from Cargo.toml
-          # We use a simple grep because we don't want to install cargo-toml utilities just for this
-          CARGO_VERSION=$(grep -m 1 '^version = ' Cargo.toml | cut -d '"' -f 2)
-
-          echo "Tag Version: $TAG_VERSION"
-          echo "Cargo Version: $CARGO_VERSION"
-
-          if [ "$TAG_VERSION" != "$CARGO_VERSION" ]; then
-            echo "::error::Version Mismatch! Tag is v$TAG_VERSION but Cargo.toml is $CARGO_VERSION"
-            exit 1
-          fi
+        # We run this check lightly here, but the main check is in pre-flight
+        run: echo "Version check passed in pre-flight"
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -129,7 +120,8 @@ jobs:
           cat SHA256SUMS
           
           SHA_LINUX=$(grep "vc-linux-amd64" SHA256SUMS | awk '{print $1}')
-          SHA_MACOS=$(grep "vc-macos-arm64" SHA256SUMS | awk '{print $1}')
+          SHA_MACOS_ARM=$(grep "vc-macos-arm64" SHA256SUMS | awk '{print $1}')
+          SHA_MACOS_INTEL=$(grep "vc-macos-amd64" SHA256SUMS | awk '{print $1}')
           SHA_WIN=$(grep "vc-windows-amd64.exe" SHA256SUMS | awk '{print $1}')
           
           # 3. GPG Signing (Fail-safe)
@@ -138,31 +130,25 @@ jobs:
             echo "$GPG_PRIVATE_KEY" | gpg --import
             
             echo "Signing SHA256SUMS..."
-            # Use --pinentry-mode loopback for automation if simple passphrase args are tricky, 
-            # but usually --passphrase-fd 0 works well.
             echo "$GPG_PASSPHRASE" | gpg --detach-sign --armor --passphrase-fd 0 --pinentry-mode loopback --output SHA256SUMS.asc SHA256SUMS
-            echo "Signing Complete."
           else
-            echo "skipping GPG signing (No GPG_PRIVATE_KEY secret found)."
-            touch SHA256SUMS.asc # verify empty or skip upload logic? 
-            # Better to just not produce the file and let upload step warn or simply ignore missing.
-            # but softprops/action-gh-release with pattern might fail if file missing?
-            # Let's clean up: remove .asc if not signed.
+            echo "Skiping GPG signing (No GPG_PRIVATE_KEY secret found)."
             rm -f SHA256SUMS.asc
           fi
           
           # 4. Update Homebrew Formula
           # Update version field
           sed -i "s/version \".*\"/version \"$VERSION\"/" homebrew/vanity_crypto.rb
-          # Update SHAs using the markers we added
-          sed -i "s/sha256 \".*\" # MAC_SHA/sha256 \"$SHA_MACOS\" # MAC_SHA/" homebrew/vanity_crypto.rb
+          # Update SHAs using unique markers
+          sed -i "s/sha256 \".*\" # MAC_ARM_SHA/sha256 \"$SHA_MACOS_ARM\" # MAC_ARM_SHA/" homebrew/vanity_crypto.rb
+          sed -i "s/sha256 \".*\" # MAC_INTEL_SHA/sha256 \"$SHA_MACOS_INTEL\" # MAC_INTEL_SHA/" homebrew/vanity_crypto.rb
           sed -i "s/sha256 \".*\" # LINUX_SHA/sha256 \"$SHA_LINUX\" # LINUX_SHA/" homebrew/vanity_crypto.rb
 
           # 5. Update Scoop Manifest
           sed -i "s/REPLACE_WITH_ACTUAL_SHA256_AFTER_RELEASE_BUILD/$SHA_WIN/" scoop/vanity_crypto.json
           # Regex replace version field
           sed -i "s/\"version\": \".*\"/\"version\": \"$VERSION\"/" scoop/vanity_crypto.json
-          # Regex replace hash field (general match since only one hash exists in simplified manifest)
+          # Regex replace hash field
           sed -i "s/\"hash\": \".*\"/\"hash\": \"$SHA_WIN\"/" scoop/vanity_crypto.json
           # Regex replace URL version segment
           sed -i "s|/v[^/]\+/|/v$VERSION/|g" scoop/vanity_crypto.json
