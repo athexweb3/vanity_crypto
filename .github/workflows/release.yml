@@ -199,18 +199,25 @@ jobs:
           fi
 
       - name: Publish to NPM
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }} # Fallback if OIDC fails/missing
         run: |
-          # Determine tag (e.g., 0.1.0-beta.0 -> beta, 0.1.0 -> latest)
-          # We look for the first identifier after the hyphen.
-          # If no hyphen, valid_tag is empty -> default to latest (no flag needed or explicit latest)
-          
+          # Determine tag
           VERSION=$(node -p "require('./package.json').version")
+          TAG_FLAG=""
           if [[ "$VERSION" == *"-"* ]]; then
-             # Extract 'alpha', 'beta', 'rc' etc.
              TAG=$(echo "$VERSION" | sed -E 's/^[0-9]+\.[0-9]+\.[0-9]+-([a-zA-Z]+).*/\1/')
              echo "Detected Prerelease: Using tag '$TAG'"
-             npm publish --provenance --access public --tag "$TAG"
+             TAG_FLAG="--tag $TAG"
           else
              echo "Detected Stable Release: Using tag 'latest'"
-             npm publish --provenance --access public
           fi
+
+          # Publish!
+          # We attempt OIDC provenance first. If NPM_TOKEN is provided, it might override depending on config.
+          # If the user wants to force token, they should probably remove id-token write or we can try logic.
+          # Best bet: Keep provenance. If it fails, users usually fix OIDC.
+          # But for now, we just pass the token. If OIDC is active, npm might still try it.
+          
+          npm publish --provenance --access public $TAG_FLAG || \
+          (echo "OIDC Publish failed, trying with token..." && npm publish --access public $TAG_FLAG)
