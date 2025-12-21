@@ -1,7 +1,7 @@
 class VanityCrypto < Formula
   desc "High-performance, secure, and beautiful Ethereum vanity address generator"
   homepage "https://github.com/athexweb3/vanity_crypto"
-  version "0.1.0-beta.1"
+  version "0.1.0-beta.2"
   
   if OS.mac? && Hardware::CPU.arm?
     url "https://github.com/athexweb3/vanity_crypto/releases/download/v#{version}/vc-macos-arm64"
