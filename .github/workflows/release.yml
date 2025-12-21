@@ -168,48 +168,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  publish-npm:
-    name: Publish to NPM
-    needs: build-and-release
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          registry-url: 'https://registry.npmjs.org'
-
-      - name: Install Dependencies
-        run: npm ci --ignore-scripts # Skip postinstall to avoid downloading binary during publish
-
-      - name: Verify Version matches Tag
-        run: |
-          TAG_VERSION=${GITHUB_REF#refs/tags/v}
-          PKG_VERSION=$(node -p "require('./package.json').version")
-          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
-             echo "Updating package.json version from $PKG_VERSION to $TAG_VERSION"
-             npm version $TAG_VERSION --no-git-tag-version
-          fi
-
-      - name: Publish to NPM
-        run: |
-          # Determine tag
-          VERSION=$(node -p "require('./package.json').version")
-          TAG_FLAG=""
-          if [[ "$VERSION" == *"-"* ]]; then
-             TAG=$(echo "$VERSION" | sed -E 's/^[0-9]+\.[0-9]+\.[0-9]+-([a-zA-Z]+).*/\1/')
-             echo "Detected Prerelease: Using tag '$TAG'"
-             TAG_FLAG="--tag $TAG"
-          else
-             echo "Detected Stable Release: Using tag 'latest'"
-          fi
-
-          # Publish using OIDC (Trusted Publishing) for Provenance
-          npm publish --provenance --access public $TAG_FLAG
