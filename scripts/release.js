@@ -6,7 +6,7 @@ const semver = require('semver');
 
 const pkgPath = path.join(__dirname, '..', 'package.json');
 const cargoPath = path.join(__dirname, '..', 'Cargo.toml');
-const brewPath = path.join(__dirname, '..', 'homebrew', 'vanity_crypto.rb');
+const brewPath = path.join(__dirname, '..', 'Formula', 'vanity_crypto.rb');
 const scoopPath = path.join(__dirname, '..', 'scoop', 'vanity_crypto.json');
 
 const pkg = require(pkgPath);

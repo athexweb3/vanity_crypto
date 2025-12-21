@@ -1617,7 +1617,7 @@ checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
 
 [[package]]
 name = "vanity_cli"
-version = "0.1.0-beta.2"
+version = "0.1.0-beta.3"
 dependencies = [
  "anyhow",
  "clap",
@@ -1629,7 +1629,7 @@ dependencies = [
 
 [[package]]
 name = "vanity_core"
-version = "0.1.0-beta.2"
+version = "0.1.0-beta.3"
 dependencies = [
  "hex",
  "k256",
@@ -1640,7 +1640,7 @@ dependencies = [
 
 [[package]]
 name = "vanity_ui"
-version = "0.1.0-beta.2"
+version = "0.1.0-beta.3"
 dependencies = [
  "anyhow",
  "crossterm 0.29.0",
@@ -1651,7 +1651,7 @@ dependencies = [
 
 [[package]]
 name = "vanity_wallet"
-version = "0.1.0-beta.2"
+version = "0.1.0-beta.3"
 dependencies = [
  "anyhow",
  "criterion",
