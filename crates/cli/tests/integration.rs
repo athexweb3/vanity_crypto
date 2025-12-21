@@ -9,9 +9,12 @@ fn test_help_snapshot() {
     cmd.arg("--help");
 
     // Snapshot the output.
-    // Normalized for Windows CI (CRLF -> LF)
+    // Normalized for Windows CI (CRLF -> LF) and Binary Name (vc.exe -> vc)
     let output = cmd.output().unwrap().stdout;
-    let text = String::from_utf8(output).unwrap().replace("\r\n", "\n");
+    let text = String::from_utf8(output)
+        .unwrap()
+        .replace("\r\n", "\n")
+        .replace("vc.exe", "vc");
     insta::assert_snapshot!(text);
 }
 
@@ -23,7 +26,10 @@ fn test_version_snapshot() {
 
     // Snapshot the output (e.g. "vanity_cli 0.1.0-beta.4")
     let output = cmd.output().unwrap().stdout;
-    let text = String::from_utf8(output).unwrap().replace("\r\n", "\n");
+    let text = String::from_utf8(output)
+        .unwrap()
+        .replace("\r\n", "\n")
+        .replace("vc.exe", "vc");
     insta::assert_snapshot!(text);
 }
 
@@ -35,7 +41,10 @@ fn test_invalid_arg_snapshot() {
 
     // Check stderr for the error message
     let output = cmd.output().unwrap().stderr;
-    let text = String::from_utf8(output).unwrap().replace("\r\n", "\n");
+    let text = String::from_utf8(output)
+        .unwrap()
+        .replace("\r\n", "\n")
+        .replace("vc.exe", "vc");
     insta::assert_snapshot!(text);
 }
 
