@@ -5,10 +5,10 @@ class VanityCrypto < Formula
   
   if OS.mac? && Hardware::CPU.arm?
     url "https://github.com/athexweb3/vanity_crypto/releases/download/v#{version}/vc-macos-arm64"
-    sha256 "REPLACE_WITH_ACTUAL_SHA256_AFTER_RELEASE_BUILD_MACOS"
+    sha256 "REPLACE_WITH_ACTUAL_SHA256_AFTER_RELEASE_BUILD_MACOS" # MAC_SHA
   elsif OS.linux?
     url "https://github.com/athexweb3/vanity_crypto/releases/download/v#{version}/vc-linux-amd64"
-    sha256 "REPLACE_WITH_ACTUAL_SHA256_AFTER_RELEASE_BUILD_LINUX"
+    sha256 "REPLACE_WITH_ACTUAL_SHA256_AFTER_RELEASE_BUILD_LINUX" # LINUX_SHA
   end
 
   def install
