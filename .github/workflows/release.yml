@@ -199,6 +199,8 @@ jobs:
           fi
 
       - name: Publish to NPM
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           # Determine tag
           VERSION=$(node -p "require('./package.json').version")
@@ -211,5 +213,5 @@ jobs:
              echo "Detected Stable Release: Using tag 'latest'"
           fi
 
-          # Publish using OIDC (Trusted Publishing)
-          npm publish --provenance --access public $TAG_FLAG
+          # Publish using Classic Token (Most Reliable)
+          npm publish --access public $TAG_FLAG
