@@ -210,6 +210,15 @@ mod tests {
                 // Invariant: Address is always last 20 bytes
                 let address_bytes = &hash[12..];
                 assert_eq!(address_bytes.len(), 20);
+
+                // NEW: Security Property - Key Usability
+                // Ensure the generated key can actually sign and verify a message
+                use k256::ecdsa::signature::Signer;
+                use k256::ecdsa::signature::Verifier;
+
+                let msg = b"Is this a valid Ethereum key?";
+                let signature: k256::ecdsa::Signature = signing_key.sign(msg);
+                assert!(verifying_key.verify(msg, &signature).is_ok(), "Generated key failed to verify signature!");
             }
         }
     }
