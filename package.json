@@ -8,7 +8,8 @@
   "scripts": {
     "prepare": "husky",
     "postinstall": "node npm/install.js",
-    "prepublishOnly": "node scripts/check-versions.js"
+    "prepublishOnly": "node scripts/check-versions.js",
+    "release": "node scripts/release.js"
   },
   "repository": {
     "type": "git",
@@ -29,6 +30,8 @@
   "devDependencies": {
     "@commitlint/cli": "^20.2.0",
     "@commitlint/config-conventional": "^20.2.0",
-    "husky": "^9.1.7"
+    "husky": "^9.1.7",
+    "prompts": "^2.4.2",
+    "semver": "^7.7.3"
   }
 }
