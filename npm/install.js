@@ -37,7 +37,7 @@ if (platform === 'win32') {
     if (arch === 'x64') {
         assetName = `vc-freebsd-amd64`;
     } else {
-        console.error('Unsupported architecture for FreeBSD: ' + arch);
+        console.error(`Unsupported architecture for FreeBSD: ${arch}`);
         process.exit(1);
     }
 } else {
