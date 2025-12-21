@@ -18,7 +18,7 @@ function run(command) {
 }
 
 (async () => {
-    console.log(`🚀 Automated Release (Current: ${currentVersion})`);
+    console.log(`Automated Release (Current: ${currentVersion})`);
 
     const response = await prompts({
         type: 'select',
@@ -61,7 +61,7 @@ function run(command) {
     }
 
     if (!targetVersion) {
-        console.log('❌ Cancelled.');
+        console.log('Cancelled.');
         process.exit(0);
     }
 
@@ -79,43 +79,43 @@ function run(command) {
     // 1. Update package.json
     pkg.version = targetVersion;
     fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
-    console.log('✅ package.json updated');
+    console.log('package.json updated');
 
     // 2. Update Cargo.toml (Workspace)
     let cargoContent = fs.readFileSync(cargoPath, 'utf8');
     // Replace valid semver string in version field
     cargoContent = cargoContent.replace(/version = "[^"]+"/, `version = "${targetVersion}"`);
     fs.writeFileSync(cargoPath, cargoContent);
-    console.log('✅ Cargo.toml updated');
+    console.log('Cargo.toml updated');
 
     // 3. Update Homebrew (`version "..."`)
     let brewContent = fs.readFileSync(brewPath, 'utf8');
     brewContent = brewContent.replace(/version "[^"]+"/, `version "${targetVersion}"`);
     fs.writeFileSync(brewPath, brewContent);
-    console.log('✅ Homebrew Formula updated');
+    console.log('Homebrew Formula updated');
 
     // 4. Update Scoop (`"version": "..."`)
     let scoopContent = fs.readFileSync(scoopPath, 'utf8');
     scoopContent = scoopContent.replace(/"version": "[^"]+"/, `"version": "${targetVersion}"`);
     fs.writeFileSync(scoopPath, scoopContent);
-    console.log('✅ Scoop Manifest updated');
+    console.log('Scoop Manifest updated');
 
-    console.log('\n🛡️  Running verification...');
+    console.log('\nRunning verification...');
     try {
         require('./check-versions.js'); // Assuming check-versions logic runs on require or we can execute it
         // Since check-versions runs instantly, we can just shell out to be safe context-wise
         // execSync('node scripts/check-versions.js', { stdio: 'inherit' });
     } catch (e) {
-        console.error('❌ Verification failed. Aborting commit.');
+        console.error('Verification failed. Aborting commit.');
         process.exit(1);
     }
 
-    console.log('\n📦 Committing and Tagging...');
+    console.log('\nCommitting and Tagging...');
     try {
         run('git add package.json Cargo.toml homebrew/vanity_crypto.rb scoop/vanity_crypto.json');
         run(`git commit -m "chore: release v${targetVersion}"`);
         run(`git tag v${targetVersion}`);
-        console.log(`\n✅ Successfully tagged v${targetVersion}`);
+        console.log(`Successfully tagged v${targetVersion}`);
         console.log(`👉 Now run: git push origin v${targetVersion}`);
 
         const push = await prompts({
@@ -128,13 +128,13 @@ function run(command) {
         if (push.value) {
             run('git push');
             run(`git push origin v${targetVersion}`);
-            console.log('🚀 Pushed! CI will start building.');
+            console.log('Pushed! CI will start building.');
         } else {
-            console.log('⚠️  Remember to push manually!');
+            console.log('Remember to push manually!');
         }
 
     } catch (e) {
-        console.error('❌ Error during git operations:', e);
+        console.error('Error during git operations:', e);
     }
 
 })();
