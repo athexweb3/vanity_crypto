@@ -31,7 +31,7 @@ const cargoVersion = versionMatch[1];
 console.log(`🦀 Cargo.toml version:  ${cargoVersion}`);
 
 // 3. Read Homebrew Formula
-const brewPath = path.join(__dirname, '..', 'homebrew', 'vanity_crypto.rb');
+const brewPath = path.join(__dirname, '..', 'Formula', 'vanity_crypto.rb');
 const brewContent = fs.readFileSync(brewPath, 'utf8');
 const brewMatch = brewContent.match(/version "([^"]+)"/);
 if (!brewMatch) {

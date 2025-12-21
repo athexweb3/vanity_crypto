@@ -35,6 +35,11 @@ The application includes an independent verification suite rooted in the Python 
 *   Rust Toolchain (latest stable)
 *   Python 3.10+ (for verification suite)
 
+#### macOS / Linux (Homebrew)
+```bash
+brew tap athexweb3/vanity_crypto https://github.com/athexweb3/vanity_crypto
+brew install vanity_crypto
+```
 ### Build from Source
 ```bash
 git clone https://github.com/athexweb3/vanity_crypto.git

@@ -141,9 +141,10 @@ jobs:
           
           # 4. Update Homebrew Formula
           sed -i "s/version \".*\"/version \"$VERSION\"/" homebrew/vanity_crypto.rb
-          sed -i "s/sha256 \".*\" # MAC_ARM_SHA/sha256 \"$SHA_MACOS_ARM\" # MAC_ARM_SHA/" homebrew/vanity_crypto.rb
-          sed -i "s/sha256 \".*\" # MAC_INTEL_SHA/sha256 \"$SHA_MACOS_INTEL\" # MAC_INTEL_SHA/" homebrew/vanity_crypto.rb
-          sed -i "s/sha256 \".*\" # LINUX_SHA/sha256 \"$SHA_LINUX\" # LINUX_SHA/" homebrew/vanity_crypto.rb
+          # Update Brew Formula
+          sed -i "s/# MAC_ARM_SHA/sha256 \"$SHA_MACOS_ARM\" # MAC_ARM_SHA/" Formula/vanity_crypto.rb
+          sed -i "s/# MAC_INTEL_SHA/sha256 \"$SHA_MACOS_INTEL\" # MAC_INTEL_SHA/" Formula/vanity_crypto.rb
+          sed -i "s/# LINUX_SHA/sha256 \"$SHA_LINUX\" # LINUX_SHA/" Formula/vanity_crypto.rb
 
           # 5. Update Scoop Manifest
           sed -i "s/REPLACE_WITH_ACTUAL_SHA256_AFTER_RELEASE_BUILD/$SHA_WIN/" scoop/vanity_crypto.json
@@ -158,7 +159,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           
           # 1. Backup the updated manifests (they are currently on the detached HEAD or raw checkout)
-          cp homebrew/vanity_crypto.rb ../vanity_crypto.rb.tmp
+          cp Formula/vanity_crypto.rb ../vanity_crypto.rb.tmp
           cp scoop/vanity_crypto.json ../vanity_crypto.json.tmp
           
           # 2. Switch explicitly to proper main branch and Sync
@@ -167,11 +168,11 @@ jobs:
           git reset --hard origin/main # Guaranteed clean state matching upstream
           
           # 3. Restore updates
-          mv ../vanity_crypto.rb.tmp homebrew/vanity_crypto.rb
+          mv ../vanity_crypto.rb.tmp Formula/vanity_crypto.rb
           mv ../vanity_crypto.json.tmp scoop/vanity_crypto.json
           
           # 4. Commit & Push
-          git add homebrew/vanity_crypto.rb scoop/vanity_crypto.json
+          git add Formula/vanity_crypto.rb scoop/vanity_crypto.json
           git commit -m "chore: update release manifests [skip ci]" || echo "No changes to commit"
           git push origin main
 

@@ -112,7 +112,7 @@ function run(command) {
 
     console.log('\nCommitting and Tagging...');
     try {
-        run('git add package.json Cargo.toml homebrew/vanity_crypto.rb scoop/vanity_crypto.json');
+        run('git add package.json Cargo.toml Formula/vanity_crypto.rb scoop/vanity_crypto.json');
         run(`git commit -m "chore: release v${targetVersion}"`);
         run(`git tag v${targetVersion}`);
         console.log(`Successfully tagged v${targetVersion}`);
