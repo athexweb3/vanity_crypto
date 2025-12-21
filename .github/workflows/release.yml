@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   pre-flight-checks:
-    name: 🛡️ Super Integrity Check
+    name: Integrity Check
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
