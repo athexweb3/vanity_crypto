@@ -82,7 +82,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: ${{ matrix.asset_name }}
-          generate_release_notes: true
+          generate_release_notes: false # Prevent duplicate notes from matrix jobs
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -137,20 +137,15 @@ jobs:
           fi
           
           # 4. Update Homebrew Formula
-          # Update version field
           sed -i "s/version \".*\"/version \"$VERSION\"/" homebrew/vanity_crypto.rb
-          # Update SHAs using unique markers
           sed -i "s/sha256 \".*\" # MAC_ARM_SHA/sha256 \"$SHA_MACOS_ARM\" # MAC_ARM_SHA/" homebrew/vanity_crypto.rb
           sed -i "s/sha256 \".*\" # MAC_INTEL_SHA/sha256 \"$SHA_MACOS_INTEL\" # MAC_INTEL_SHA/" homebrew/vanity_crypto.rb
           sed -i "s/sha256 \".*\" # LINUX_SHA/sha256 \"$SHA_LINUX\" # LINUX_SHA/" homebrew/vanity_crypto.rb
 
           # 5. Update Scoop Manifest
           sed -i "s/REPLACE_WITH_ACTUAL_SHA256_AFTER_RELEASE_BUILD/$SHA_WIN/" scoop/vanity_crypto.json
-          # Regex replace version field
           sed -i "s/\"version\": \".*\"/\"version\": \"$VERSION\"/" scoop/vanity_crypto.json
-          # Regex replace hash field
           sed -i "s/\"hash\": \".*\"/\"hash\": \"$SHA_WIN\"/" scoop/vanity_crypto.json
-          # Regex replace URL version segment
           sed -i "s|/v[^/]\+/|/v$VERSION/|g" scoop/vanity_crypto.json
           sed -i "s/vanity_crypto-/vc-/g" scoop/vanity_crypto.json
 
@@ -160,6 +155,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add homebrew/vanity_crypto.rb scoop/vanity_crypto.json
           git commit -m "chore: update release manifests [skip ci]" || echo "No changes to commit"
+          git pull --rebase origin main
           git push origin HEAD:main
 
       - name: Upload Signatures to Release
@@ -168,6 +164,7 @@ jobs:
           files: |
             SHA256SUMS
             SHA256SUMS.asc
+          generate_release_notes: true # Generate notes ONCE here
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -190,7 +187,7 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
 
       - name: Install Dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts # Skip postinstall to avoid downloading binary during publish
 
       - name: Verify Version matches Tag
         run: |
@@ -202,4 +199,4 @@ jobs:
           fi
 
       - name: Publish to NPM
-        run: npm publish --provenance
+        run: npm publish --provenance --access public
