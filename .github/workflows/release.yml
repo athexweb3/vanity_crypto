@@ -130,16 +130,20 @@ jobs:
           fi
           
           # 4. Update Homebrew Formula
+          # Replace dynamic version if present, or regex match standard version format
+          # Since we used interpolation #{version} in ruby, we only need to update the version definition itself!
+          sed -i "s/version \".*\"/version \"$VERSION\"/" homebrew/vanity_crypto.rb
           sed -i "s/REPLACE_WITH_ACTUAL_SHA256_AFTER_RELEASE_BUILD_LINUX/$SHA_LINUX/" homebrew/vanity_crypto.rb
           sed -i "s/REPLACE_WITH_ACTUAL_SHA256_AFTER_RELEASE_BUILD_MACOS/$SHA_MACOS/" homebrew/vanity_crypto.rb
-          sed -i "s/version \"0.1.0\"/version \"$VERSION\"/" homebrew/vanity_crypto.rb
-          sed -i "s/v0.1.0/v$VERSION/g" homebrew/vanity_crypto.rb
-          sed -i "s/vanity_crypto-/vc-/g" homebrew/vanity_crypto.rb
-          
+          # No need to sed replace URL in ruby because it uses #{version} interpolation now!
+
           # 5. Update Scoop Manifest
           sed -i "s/REPLACE_WITH_ACTUAL_SHA256_AFTER_RELEASE_BUILD/$SHA_WIN/" scoop/vanity_crypto.json
-          sed -i "s/\"version\": \"0.1.0\"/\"version\": \"$VERSION\"/" scoop/vanity_crypto.json
-          sed -i "s/v0.1.0/v$VERSION/g" scoop/vanity_crypto.json
+          # Regex replace version field
+          sed -i "s/\"version\": \".*\"/\"version\": \"$VERSION\"/" scoop/vanity_crypto.json
+          # Regex replace URL version segment (e.g., v0.1.0 -> v$VERSION)
+          # Matches /v<any-non-slash>/
+          sed -i "s|/v[^/]\+/|/v$VERSION/|g" scoop/vanity_crypto.json
           sed -i "s/vanity_crypto-/vc-/g" scoop/vanity_crypto.json
 
       - name: Upload Manifests & Signatures to Release

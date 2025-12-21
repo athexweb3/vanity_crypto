@@ -1,13 +1,13 @@
 class VanityCrypto < Formula
   desc "High-performance, secure, and beautiful Ethereum vanity address generator"
   homepage "https://github.com/athexweb3/vanity_crypto"
-  version "0.1.0"
+  version "0.1.0-alpha"
   
   if OS.mac? && Hardware::CPU.arm?
-    url "https://github.com/athexweb3/vanity_crypto/releases/download/v0.1.0/vc-macos-arm64"
+    url "https://github.com/athexweb3/vanity_crypto/releases/download/v#{version}/vc-macos-arm64"
     sha256 "REPLACE_WITH_ACTUAL_SHA256_AFTER_RELEASE_BUILD_MACOS"
   elsif OS.linux?
-    url "https://github.com/athexweb3/vanity_crypto/releases/download/v0.1.0/vc-linux-amd64"
+    url "https://github.com/athexweb3/vanity_crypto/releases/download/v#{version}/vc-linux-amd64"
     sha256 "REPLACE_WITH_ACTUAL_SHA256_AFTER_RELEASE_BUILD_LINUX"
   end
 
