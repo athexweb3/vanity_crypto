@@ -29,6 +29,26 @@ enum BtcType {
     Taproot,
 }
 
+impl From<Network> for bitcoin::Network {
+    fn from(n: Network) -> Self {
+        match n {
+            Network::Mainnet => bitcoin::Network::Bitcoin,
+            Network::Testnet => bitcoin::Network::Testnet,
+            Network::Regtest => bitcoin::Network::Regtest,
+        }
+    }
+}
+
+impl From<BtcType> for BitcoinAddressType {
+    fn from(t: BtcType) -> Self {
+        match t {
+            BtcType::Legacy => BitcoinAddressType::Legacy,
+            BtcType::Segwit => BitcoinAddressType::SegWit,
+            BtcType::Taproot => BitcoinAddressType::Taproot,
+        }
+    }
+}
+
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
@@ -300,16 +320,8 @@ fn run_batch_generation(count: u64, args: &Args) {
     let gen: Box<dyn VanityGenerator> = match args.chain {
         Chain::Ethereum => Box::new(EthereumVanityGenerator::new("", "", false)),
         Chain::Bitcoin => {
-            let net = match args.network {
-                Network::Mainnet => bitcoin::Network::Bitcoin,
-                Network::Testnet => bitcoin::Network::Testnet,
-                Network::Regtest => bitcoin::Network::Regtest,
-            };
-            let t = match args.btc_type {
-                BtcType::Legacy => BitcoinAddressType::Legacy,
-                BtcType::Segwit => BitcoinAddressType::SegWit,
-                BtcType::Taproot => BitcoinAddressType::Taproot,
-            };
+            let net = args.network.clone().into();
+            let t = args.btc_type.clone().into();
             Box::new(BitcoinVanityGenerator::new("", "", false, net, t))
         }
     };

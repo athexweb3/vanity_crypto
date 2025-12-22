@@ -22,6 +22,40 @@ def hash160(data):
     sha = hashlib.sha256(data).digest()
     return hashlib.new('ripemd160', sha).digest()
 
+# --- Bech32m Implementation (BIP-350) ---
+# Included to ensure rigorous correctness independent of installed library versions.
+
+BECH32_CHARSET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
+BECH32_CONST = 1
+BECH32M_CONST = 0x2bc830a3
+
+class Encoding:
+    BECH32 = 1
+    BECH32M = 2
+
+def bech32_polymod(values):
+    GEN = [0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3]
+    chk = 1
+    for v in values:
+        b = chk >> 25
+        chk = (chk & 0x1ffffff) << 5 ^ v
+        for i in range(5):
+            chk ^= GEN[i] if ((b >> i) & 1) else 0
+    return chk
+
+def bech32_hrp_expand(hrp):
+    return [ord(x) >> 5 for x in hrp] + [0] + [ord(x) & 31 for x in hrp]
+
+def bech32_create_checksum(hrp, data, spec):
+    values = bech32_hrp_expand(hrp) + data
+    const = BECH32M_CONST if spec == Encoding.BECH32M else BECH32_CONST
+    polymod = bech32_polymod(values + [0, 0, 0, 0, 0, 0]) ^ const
+    return [(polymod >> 5 * (5 - i)) & 31 for i in range(6)]
+
+def local_bech32_encode(hrp, data, spec):
+    combined = data + bech32_create_checksum(hrp, data, spec)
+    return hrp + '1' + ''.join([BECH32_CHARSET[d] for d in combined])
+
 # --- EXPORTED VERIFICATION FUNCTIONS ---
 
 def get_bitcoin_address(wif_key):
@@ -81,27 +115,57 @@ def get_bitcoin_address(wif_key):
         p2wpkh_addr = None
         if is_compressed:
             witness_prog = hash160(compressed_pub) 
+        if is_compressed:
+            witness_prog = hash160(compressed_pub) 
             witness_prog_5bit = bech32.convertbits(witness_prog, 8, 5)
-            p2wpkh_addr = bech32.bech32_encode(hrp, [0] + witness_prog_5bit)
+            # Use local bech32 encode with v0 spec (BECH32)
+            p2wpkh_addr = local_bech32_encode(hrp, [0] + witness_prog_5bit, Encoding.BECH32)
             
         # --- TAPROOT (P2TR) ---
-        # For Taproot, use the x-only public key with BIP340 tweaking
         p2tr_addr = None
         if is_compressed:
             # BIP340: use x-only pubkey
+            # But for correct address derivation, we MUST tweak the key
+            # Q = P + hash(P||TapTweak)G
+            
+            # 1. Get internal key bytes (x-only)
             internal_x = x_bytes
             
-            # Tagged hash for taproot tweak (BIP341)
+            # 2. Calculate Tweak Hash
             tag = "TapTweak"
             tag_hash = hashlib.sha256(tag.encode()).digest()
             tweak_hash = hashlib.sha256(tag_hash + tag_hash + internal_x).digest()
+            tweak_int = int.from_bytes(tweak_hash, 'big')
             
-            # Simplified Taproot address (assumes no script path, key-path only)
-            # Full implementation would require point addition with tweak
-            # For verification purposes, using x-coordinate directly
-            witness_prog_5bit = bech32.convertbits(internal_x, 8, 5)
-            # Use segwit v1 (Taproot) with bech32m encoding
-            p2tr_addr = bech32.bech32_encode(hrp, [1] + witness_prog_5bit, bech32.Encoding.BECH32M)
+            # 3. Apply Tweak: Q = P + tweak * G
+            # ecdsa library points support addition and scalar multiplication
+            G = SECP256k1.generator
+            P_point = vk.pubkey.point
+            
+            # Note: ecdsa points usually handle the parity checks internally?
+            # Ideally we ensure P has even Y first (lift_x), but here we start from a valid key.
+            # If P had odd Y, we negate it? But for vanity gen we assume we handle it?
+            # Actually, standard is: if Y is odd, negate P -> P'. Then Q = P' + tweak*G.
+            # Our Rust code likely produces even Y keys or handles this. 
+            # Let's assume P is the point we have (derived from WIF).
+            if P_point.y() % 2 != 0:
+                # Negate Y: (x, p-y)
+                from ecdsa.ellipticcurve import Point
+                curve = SECP256k1.curve
+                p = curve.p()
+                new_y = p - P_point.y()
+                P_point = Point(curve, P_point.x(), new_y)
+
+            # Let's proceed with adding tweak * G
+            Q_point = P_point + (G * tweak_int)
+            
+            # 4. Get tweaked x-coordinate
+            output_x = Q_point.x().to_bytes(32, 'big')
+
+            witness_prog_5bit = bech32.convertbits(output_x, 8, 5)
+            witness_prog_5bit = bech32.convertbits(output_x, 8, 5)
+            # Use segwit v1 (Taproot) with bech32m encoding (BECH32M)
+            p2tr_addr = local_bech32_encode(hrp, [1] + witness_prog_5bit, Encoding.BECH32M)
         
         return {
             'legacy': p2pkh_addr,
@@ -109,7 +173,9 @@ def get_bitcoin_address(wif_key):
             'taproot': p2tr_addr
         }
 
-    except Exception:
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
         return None
 
 def verify_ethereum_key(hex_key):

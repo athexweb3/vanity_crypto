@@ -65,9 +65,6 @@ impl Address {
 /// Represents a 32-byte Private Key.
 /// derived with Debug that redacts the actual key for safety logs,
 /// but Display shows it (assuming user intends to see it).
-/// Represents a Private Key.
-/// derived with Debug that redacts the actual key for safety logs,
-/// but Display shows it (assuming user intends to see it).
 #[derive(Clone, PartialEq, Eq)]
 pub enum PrivateKey {
     Ethereum([u8; 32]),

@@ -33,6 +33,8 @@ impl EthereumVanityGenerator {
         } else {
             addr_str.to_lowercase()
         };
+        // Strip 0x if present (important for checksummed addresses from to_string())
+        let target = target.trim_start_matches("0x");
 
         let p_match = if !self.prefix.is_empty() {
             let p = if self.case_sensitive {
@@ -101,8 +103,11 @@ impl EthereumVanityGenerator {
                 (pk, address)
             })
             .find_any(|(_pk, addr)| {
-                // Use to_match_string() to avoid expensive EIP-55 checksum calculation
-                self.matches(&addr.to_match_string())
+                if self.case_sensitive {
+                    self.matches(&addr.to_string())
+                } else {
+                    self.matches(&addr.to_match_string())
+                }
             })
             .expect("Infinite iterator execution")
     }
@@ -110,13 +115,64 @@ impl EthereumVanityGenerator {
 
 impl VanityGenerator for EthereumVanityGenerator {
     fn generate(&self) -> (PrivateKey, Address) {
-        self.search(None)
+        // Single-threaded optimization for batch generation
+        let bytes: [u8; 32] = rand::random();
+
+        let signing_key = SigningKey::from_bytes(&bytes.into()).expect("valid key from random");
+        let verifying_key = VerifyingKey::from(&signing_key);
+        let encoded_point = verifying_key.to_encoded_point(false);
+        let encoded = encoded_point.as_bytes();
+        // Skip the uncompressed prefix (0x04)
+        let public_key_bytes = &encoded[1..];
+
+        let mut hasher = Keccak256::new();
+        hasher.update(public_key_bytes);
+        let hash = hasher.finalize();
+
+        let mut address_bytes = [0u8; 20];
+        address_bytes.copy_from_slice(&hash[12..]);
+
+        let address = Address::Ethereum(address_bytes);
+        let pk = PrivateKey::Ethereum(bytes);
+
+        (pk, address)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_case_sensitivity_logic() {
+        let gen_sens = EthereumVanityGenerator::new("DeaD", "", true);
+        let gen_insens = EthereumVanityGenerator::new("dead", "", false);
+
+        // Checksummed address (starts with 0x)
+        let checksum = "0xDeaD000000000000000000000000000000000000";
+        // Lowercase address (starts with 0x)
+        let lower = "0xdead000000000000000000000000000000000000";
+
+        // Sensitive: Must match exact prefix "DeaD" (after 0x strip)
+        assert!(
+            gen_sens.matches(checksum),
+            "Sensitive: Should match 0xDeaD..."
+        );
+        assert!(
+            !gen_sens.matches(lower),
+            "Sensitive: Should NOT match 0xdead..."
+        );
+
+        // Insensitive: Should match both "dead" and "DeaD" (normalized to "dead")
+        assert!(
+            gen_insens.matches(checksum),
+            "Insensitive: Should match 0xDeaD..."
+        );
+        assert!(
+            gen_insens.matches(lower),
+            "Insensitive: Should match 0xdead..."
+        );
+    }
 
     #[test]
     fn test_address_derivation_vector_1() {

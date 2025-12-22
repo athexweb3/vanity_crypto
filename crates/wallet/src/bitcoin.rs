@@ -1,4 +1,4 @@
-use bitcoin::secp256k1::Secp256k1;
+use bitcoin::secp256k1::{All, Secp256k1};
 use bitcoin::{Address, CompressedPublicKey, Network, PublicKey, XOnlyPublicKey};
 use rayon::prelude::*;
 
@@ -19,6 +19,7 @@ pub struct BitcoinVanityGenerator {
     case_sensitive: bool,
     network: Network,
     addr_type: BitcoinAddressType,
+    secp: Secp256k1<All>,
 }
 
 impl BitcoinVanityGenerator {
@@ -42,6 +43,7 @@ impl BitcoinVanityGenerator {
             case_sensitive,
             network,
             addr_type,
+            secp: Secp256k1::new(),
         }
     }
 
@@ -68,9 +70,8 @@ impl BitcoinVanityGenerator {
         &self,
         progress: Option<Arc<std::sync::atomic::AtomicU64>>,
     ) -> (PrivateKey, CoreAddress) {
-        // Create Secp256k1 context once (expensive operation)
-        // Secp256k1 is Send + Sync, so it can be safely shared across threads
-        let secp = Secp256k1::new();
+        // Use cached Secp256k1 context (thread-safe)
+        // Convert to reference for rayon closure if needed, but Secp256k1 is internally thread-safe
 
         rayon::iter::repeat(())
             .map(|_| {
@@ -78,7 +79,8 @@ impl BitcoinVanityGenerator {
                     p.fetch_add(1, Ordering::Relaxed);
                 }
 
-                let (secret_key, public_key) = secp.generate_keypair(&mut rand::thread_rng());
+                // Generate key using cached context
+                let (secret_key, public_key) = self.secp.generate_keypair(&mut rand::thread_rng());
 
                 // Create bitcoin::PrivateKey for WIF
                 let bitcoin_private_key = bitcoin::PrivateKey::new(secret_key, self.network);
@@ -95,9 +97,9 @@ impl BitcoinVanityGenerator {
                     }
                     BitcoinAddressType::Taproot => {
                         let keypair =
-                            bitcoin::secp256k1::Keypair::from_secret_key(&secp, &secret_key);
+                            bitcoin::secp256k1::Keypair::from_secret_key(&self.secp, &secret_key);
                         let (x_only, _parity) = XOnlyPublicKey::from_keypair(&keypair);
-                        Address::p2tr(&secp, x_only, None, self.network).to_string()
+                        Address::p2tr(&self.secp, x_only, None, self.network).to_string()
                     }
                 };
 
@@ -116,7 +118,31 @@ impl BitcoinVanityGenerator {
 
 impl VanityGenerator for BitcoinVanityGenerator {
     fn generate(&self) -> (PrivateKey, CoreAddress) {
-        self.search(None)
+        // Single-threaded generation for efficient batch processing
+        // avoids rayon overhead when we just want one key
+        let (secret_key, public_key) = self.secp.generate_keypair(&mut rand::thread_rng());
+
+        // Create bitcoin::PrivateKey for WIF
+        let bitcoin_private_key = bitcoin::PrivateKey::new(secret_key, self.network);
+        let wif = bitcoin_private_key.to_string();
+
+        let addr_str = match self.addr_type {
+            BitcoinAddressType::Legacy => {
+                let pubkey = PublicKey::new(public_key);
+                Address::p2pkh(pubkey, self.network).to_string()
+            }
+            BitcoinAddressType::SegWit => {
+                let pubkey = CompressedPublicKey(public_key);
+                Address::p2wpkh(&pubkey, self.network).to_string()
+            }
+            BitcoinAddressType::Taproot => {
+                let keypair = bitcoin::secp256k1::Keypair::from_secret_key(&self.secp, &secret_key);
+                let (x_only, _parity) = XOnlyPublicKey::from_keypair(&keypair);
+                Address::p2tr(&self.secp, x_only, None, self.network).to_string()
+            }
+        };
+
+        (PrivateKey::Bitcoin(wif), CoreAddress::Bitcoin(addr_str))
     }
 }
 
