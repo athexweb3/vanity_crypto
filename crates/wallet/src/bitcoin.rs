@@ -66,12 +66,36 @@ impl BitcoinVanityGenerator {
         }
     }
 
+    // New helper function
+    pub fn derive_address(
+        secp: &Secp256k1<All>,
+        network: Network,
+        addr_type: BitcoinAddressType,
+        secret_key: bitcoin::secp256k1::SecretKey,
+        public_key: bitcoin::secp256k1::PublicKey,
+    ) -> String {
+        match addr_type {
+            BitcoinAddressType::Legacy => {
+                let pubkey = PublicKey::from(CompressedPublicKey(public_key));
+                Address::p2pkh(pubkey, network).to_string()
+            }
+            BitcoinAddressType::SegWit => {
+                let pubkey = CompressedPublicKey(public_key);
+                Address::p2wpkh(&pubkey, network).to_string()
+            }
+            BitcoinAddressType::Taproot => {
+                let keypair = bitcoin::secp256k1::Keypair::from_secret_key(secp, &secret_key);
+                let (x_only, _parity) = XOnlyPublicKey::from_keypair(&keypair);
+                Address::p2tr(secp, x_only, None, network).to_string()
+            }
+        }
+    }
+
     pub fn search(
         &self,
         progress: Option<Arc<std::sync::atomic::AtomicU64>>,
     ) -> (PrivateKey, CoreAddress) {
         // Use cached Secp256k1 context (thread-safe)
-        // Convert to reference for rayon closure if needed, but Secp256k1 is internally thread-safe
 
         rayon::iter::repeat(())
             .map(|_| {
@@ -86,22 +110,13 @@ impl BitcoinVanityGenerator {
                 let bitcoin_private_key = bitcoin::PrivateKey::new(secret_key, self.network);
                 let wif = bitcoin_private_key.to_string();
 
-                let addr_str = match self.addr_type {
-                    BitcoinAddressType::Legacy => {
-                        let pubkey = PublicKey::from(CompressedPublicKey(public_key));
-                        Address::p2pkh(pubkey, self.network).to_string()
-                    }
-                    BitcoinAddressType::SegWit => {
-                        let pubkey = CompressedPublicKey(public_key);
-                        Address::p2wpkh(&pubkey, self.network).to_string()
-                    }
-                    BitcoinAddressType::Taproot => {
-                        let keypair =
-                            bitcoin::secp256k1::Keypair::from_secret_key(&self.secp, &secret_key);
-                        let (x_only, _parity) = XOnlyPublicKey::from_keypair(&keypair);
-                        Address::p2tr(&self.secp, x_only, None, self.network).to_string()
-                    }
-                };
+                let addr_str = Self::derive_address(
+                    &self.secp,
+                    self.network,
+                    self.addr_type,
+                    secret_key,
+                    public_key,
+                );
 
                 let pk = PrivateKey::Bitcoin(wif);
                 let address = CoreAddress::Bitcoin(addr_str);
@@ -126,21 +141,13 @@ impl VanityGenerator for BitcoinVanityGenerator {
         let bitcoin_private_key = bitcoin::PrivateKey::new(secret_key, self.network);
         let wif = bitcoin_private_key.to_string();
 
-        let addr_str = match self.addr_type {
-            BitcoinAddressType::Legacy => {
-                let pubkey = PublicKey::from(CompressedPublicKey(public_key));
-                Address::p2pkh(pubkey, self.network).to_string()
-            }
-            BitcoinAddressType::SegWit => {
-                let pubkey = CompressedPublicKey(public_key);
-                Address::p2wpkh(&pubkey, self.network).to_string()
-            }
-            BitcoinAddressType::Taproot => {
-                let keypair = bitcoin::secp256k1::Keypair::from_secret_key(&self.secp, &secret_key);
-                let (x_only, _parity) = XOnlyPublicKey::from_keypair(&keypair);
-                Address::p2tr(&self.secp, x_only, None, self.network).to_string()
-            }
-        };
+        let addr_str = Self::derive_address(
+            &self.secp,
+            self.network,
+            self.addr_type,
+            secret_key,
+            public_key,
+        );
 
         (PrivateKey::Bitcoin(wif), CoreAddress::Bitcoin(addr_str))
     }
@@ -153,6 +160,7 @@ mod tests {
     use bitcoin::secp256k1::{Message, Secp256k1, SecretKey};
     use std::str::FromStr;
 
+    // ... (test_bitcoin_key_usability remains the same)
     #[test]
     fn test_bitcoin_key_usability() {
         let secp = Secp256k1::new();
@@ -220,27 +228,18 @@ mod tests {
         let mut secret_bytes = [0u8; 32];
         secret_bytes[31] = 1;
         let secret_key = SecretKey::from_slice(&secret_bytes).unwrap();
+        // Pre-compute public key to emulate real usage
+        let public_key = bitcoin::secp256k1::PublicKey::from_secret_key(&secp, &secret_key);
 
         let verify_addr = |addr_type: BitcoinAddressType, expected: &str| {
-            let address_str = match addr_type {
-                BitcoinAddressType::Legacy => {
-                    let public_key =
-                        bitcoin::secp256k1::PublicKey::from_secret_key(&secp, &secret_key);
-                    let pubkey = PublicKey::from(CompressedPublicKey(public_key));
-                    Address::p2pkh(pubkey, Network::Bitcoin).to_string()
-                }
-                BitcoinAddressType::SegWit => {
-                    let public_key =
-                        bitcoin::secp256k1::PublicKey::from_secret_key(&secp, &secret_key);
-                    let pubkey = CompressedPublicKey(public_key);
-                    Address::p2wpkh(&pubkey, Network::Bitcoin).to_string()
-                }
-                BitcoinAddressType::Taproot => {
-                    let keypair = bitcoin::secp256k1::Keypair::from_secret_key(&secp, &secret_key);
-                    let (xonly, _) = XOnlyPublicKey::from_keypair(&keypair);
-                    Address::p2tr(&secp, xonly, None, Network::Bitcoin).to_string()
-                }
-            };
+            // Use the shared production logic:
+            let address_str = BitcoinVanityGenerator::derive_address(
+                &secp,
+                Network::Bitcoin,
+                addr_type,
+                secret_key,
+                public_key,
+            );
             assert_eq!(address_str, expected, "Mismatch for {:?}", addr_type);
         };
 

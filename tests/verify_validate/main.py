@@ -5,18 +5,28 @@ import hashlib
 
 # --- MAIN LOGIC ---
 
+# Optional Imports
+Account = None
+keys = None
+base58 = None
+bech32 = None
+SECP256k1 = None
+SigningKey = None
+
+# 1. Try Ethereum Dependencies
 try:
     from eth_account import Account
     from eth_keys import keys
+except ImportError:
+    pass # Handled in verify_ethereum_key
+
+# 2. Try Bitcoin Dependencies
+try:
     import base58
     import bech32
-    # Use ecdsa library for Bitcoin ECC operations
     from ecdsa import SECP256k1, SigningKey
 except ImportError:
-    import os
-    print("[ERROR] Required libraries not found.")
-    print("Please install: pip install eth-account base58 bech32 ecdsa")
-    sys.exit(1)
+    pass # Handled in verify_bitcoin_key
 
 def hash160(data):
     sha = hashlib.sha256(data).digest()
@@ -113,8 +123,7 @@ def get_bitcoin_address(wif_key):
 
         # --- SEGWIT (P2WPKH) ---
         p2wpkh_addr = None
-        if is_compressed:
-            witness_prog = hash160(compressed_pub) 
+
         if is_compressed:
             witness_prog = hash160(compressed_pub) 
             witness_prog_5bit = bech32.convertbits(witness_prog, 8, 5)
@@ -128,41 +137,34 @@ def get_bitcoin_address(wif_key):
             # But for correct address derivation, we MUST tweak the key
             # Q = P + hash(P||TapTweak)G
             
-            # 1. Get internal key bytes (x-only)
-            internal_x = x_bytes
-            
-            # 2. Calculate Tweak Hash
-            tag = "TapTweak"
-            tag_hash = hashlib.sha256(tag.encode()).digest()
-            tweak_hash = hashlib.sha256(tag_hash + tag_hash + internal_x).digest()
-            tweak_int = int.from_bytes(tweak_hash, 'big')
-            
-            # 3. Apply Tweak: Q = P + tweak * G
-            # ecdsa library points support addition and scalar multiplication
+            # 1. Get internal key point P and ensure even Y (BIP-340)
             G = SECP256k1.generator
             P_point = vk.pubkey.point
-            
-            # Note: ecdsa points usually handle the parity checks internally?
-            # Ideally we ensure P has even Y first (lift_x), but here we start from a valid key.
-            # If P had odd Y, we negate it? But for vanity gen we assume we handle it?
-            # Actually, standard is: if Y is odd, negate P -> P'. Then Q = P' + tweak*G.
-            # Our Rust code likely produces even Y keys or handles this. 
-            # Let's assume P is the point we have (derived from WIF).
+
             if P_point.y() % 2 != 0:
-                # Negate Y: (x, p-y)
+                # Negate Y to ensure P has even coordinate
                 from ecdsa.ellipticcurve import Point
                 curve = SECP256k1.curve
                 p = curve.p()
                 new_y = p - P_point.y()
                 P_point = Point(curve, P_point.x(), new_y)
 
-            # Let's proceed with adding tweak * G
+            # 2. Get x-coordinate of the even-Y point
+            internal_x = P_point.x().to_bytes(32, 'big')
+
+            # 3. Calculate Tweak Hash (BIP-341)
+            tag = "TapTweak"
+            tag_hash = hashlib.sha256(tag.encode()).digest()
+            tweak_hash = hashlib.sha256(tag_hash + tag_hash + internal_x).digest()
+            tweak_int = int.from_bytes(tweak_hash, 'big')
+
+            # 4. Apply Tweak: Q = P + tweak * G
             Q_point = P_point + (G * tweak_int)
             
             # 4. Get tweaked x-coordinate
             output_x = Q_point.x().to_bytes(32, 'big')
 
-            witness_prog_5bit = bech32.convertbits(output_x, 8, 5)
+
             witness_prog_5bit = bech32.convertbits(output_x, 8, 5)
             # Use segwit v1 (Taproot) with bech32m encoding (BECH32M)
             p2tr_addr = local_bech32_encode(hrp, [1] + witness_prog_5bit, Encoding.BECH32M)
@@ -181,6 +183,12 @@ def get_bitcoin_address(wif_key):
 def verify_ethereum_key(hex_key):
     # Standalone CLI verification logic
     print("\n[VERIFYING ETHEREUM KEY]")
+    
+    if Account is None or keys is None:
+        print("[ERROR] Verification Skipped. Required libraries not found.")
+        print("To verify Ethereum keys, install: pip install eth-account eth-keys")
+        return
+
     hex_key = hex_key.strip().replace("0x", "")
     if len(hex_key) != 64:
         print(f"❌ INVALID LENGTH: 64 hex chars required.")
@@ -199,6 +207,12 @@ def verify_ethereum_key(hex_key):
 
 def verify_bitcoin_key(wif_key):
     print("\n[VERIFYING BITCOIN WIF]")
+    
+    if base58 is None or bech32 is None or SECP256k1 is None:
+        print("[ERROR] Verification Skipped. Required libraries not found.")
+        print("To verify Bitcoin keys, install: pip install base58 bech32 ecdsa")
+        return
+
     addresses = get_bitcoin_address(wif_key)
     
     if addresses:
