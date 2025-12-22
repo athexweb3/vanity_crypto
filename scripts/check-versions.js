@@ -18,7 +18,7 @@ const cargoContent = fs.readFileSync(cargoPath, 'utf8');
 
 // Simple regex to find [workspace.package] version
 // Looks for: version = "x.y.z" inside the file. 
-// Note: This regex assumes the first 'version =' under [workspace.package] is usually what we want,
+// Regex targets workspace version definition
 // or we can be more robust. The file has `[workspace.package]` block.
 const versionMatch = cargoContent.match(/\[workspace\.package\][\s\S]*?version\s*=\s*"([^"]+)"/);
 

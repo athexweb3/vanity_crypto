@@ -1,12 +1,18 @@
 ---
 source: crates/cli/tests/integration.rs
-expression: "String::from_utf8(cmd.output().unwrap().stdout).unwrap()"
+expression: text
 ---
 A high-performance, secure, and beautiful Ethereum vanity address generator
 
 Usage: vc [OPTIONS]
 
 Options:
+      --chain <CHAIN>
+          Blockchain to generate address for [default: ethereum] [possible values: ethereum, bitcoin]
+      --network <NETWORK>
+          Network (mainnet, testnet, regtest) [default: mainnet] [possible values: mainnet, testnet, regtest]
+      --btc-type <BTC_TYPE>
+          Bitcoin address type (only used if chain is bitcoin) [default: segwit] [possible values: legacy, segwit, taproot]
   -p, --prefix <PREFIX>
           Prefix must start with this string (e.g., "0xDEAD") [default: ]
   -s, --suffix <SUFFIX>
@@ -14,7 +20,7 @@ Options:
       --case-sensitive
           Case-sensitive matching
       --no-tui
-          Disable TUI and just print result to stdout
+          Print result to stdout without TUI
       --generate-batch <GENERATE_BATCH>
           Generate a batch of N random keys (JSON Lines format) for fuzzing
   -h, --help

@@ -8,15 +8,19 @@ We adhere to the highest standards of cryptographic transparency. As a tool that
 We provide a built-in, isolated verification suite that allows you to mathematically prove the validity of generated keys without relying on the Rust binary alone.
 
 *   **Location**: `tests/verify_validate/main.py`
-*   **Method**: Uses the standard Python `eth-account` library to independently derive the address from the private key.
+*   **Method**: Uses standard Python libraries to independently derive addresses:
+    *   **Ethereum**: `eth-account` (Reference implementation)
+    *   **Bitcoin**: `base58` (BIP-58), `bech32` (BIP-173, BIP-350), and pure Python Elliptic Curve math.
 *   **Usage**:
     ```bash
-    cargo run --release -- --prefix 0xABC --no-tui
-    # The tool automatically runs the python verifier on exit.
+    # Run the fuzzing suite
+    python3 tests/verify_validate/fuzz_test.py --chain bitcoin --btc-type taproot
     ```
 
 ### 2. Supply Chain Security
-*   **Dependencies**: We strictly limit our dependency tree. All cryptographic primitives come from the audited [RustCrypto](https://github.com/RustCrypto) project (`k256`, `sha3`).
+*   **Dependencies**: We strictly limit our dependency tree. All cryptographic primitives come from audited sources:
+    *   **Ethereum**: [RustCrypto](https://github.com/RustCrypto) (`k256`, `sha3`)
+    *   **Bitcoin**: [rust-bitcoin](https://github.com/rust-bitcoin/rust-bitcoin) (`bitcoin`, `secp256k1`)
 *   **Lockfile**: `Cargo.lock` is committed to ensure reproducible builds.
 *   **No Network**: This tool is designed to be **offline-first**. It makes zero network requests. You should run it on an air-gapped machine for maximum security.
 

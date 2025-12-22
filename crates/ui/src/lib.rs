@@ -1,8 +1,8 @@
-use crate::app::App;
+use crate::app::{App, BitcoinType, Chain};
 use crate::view::ui;
 use anyhow::Result;
 use crossterm::{
-    event::{self, Event, KeyCode},
+    event::{self, Event, KeyCode, KeyModifiers},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
@@ -15,23 +15,21 @@ use std::sync::mpsc;
 use std::sync::Arc;
 use std::{io, time::Duration};
 
-/// Runs the TUI.
-/// This function blocks until the user quits or a result is found.
-///
-/// `result_receiver`: A way to check if the generator thread has finished.
-/// In a real app, passing a receiver channel is better.
-/// For this v1, checking if `receiver.try_recv()` has a value is enough.
+#[allow(clippy::too_many_arguments)]
 pub fn run_tui<F>(
     attempts: Arc<AtomicU64>,
-    result_rx: mpsc::Receiver<(String, String)>, // Changed to tuple
+    result_rx: mpsc::Receiver<(String, String)>,
     prefix: String,
     suffix: String,
     case_sensitive: bool,
     start_immediately: bool,
+    initial_chain: Chain,
+    initial_network: crate::app::Network,
+    initial_btc_type: BitcoinType,
     on_search_start: F,
 ) -> Result<Option<(String, String)>>
 where
-    F: Fn(String, String, bool) + Send + 'static, // Changed FnMut to Fn and added Send + 'static
+    F: Fn(String, String, bool, Chain, crate::app::Network, BitcoinType) + Send + 'static,
 {
     enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -39,7 +37,27 @@ where
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    let mut app = App::new(attempts, prefix, suffix, case_sensitive, start_immediately);
+    let mut app = App::new(
+        attempts,
+        prefix,
+        suffix,
+        case_sensitive,
+        start_immediately,
+        initial_chain,
+        initial_network,
+        initial_btc_type,
+    );
+
+    if start_immediately {
+        on_search_start(
+            app.prefix.clone(),
+            app.suffix.clone(),
+            app.case_sensitive,
+            app.chain,
+            app.network,
+            app.btc_type,
+        );
+    }
     let tick_rate = Duration::from_millis(100);
     let mut last_tick = Instant::now();
     use std::time::Instant;
@@ -47,7 +65,6 @@ where
     loop {
         terminal.draw(|f| ui(f, &mut app))?;
 
-        // Check for result if searching
         if let crate::app::AppState::Searching = app.state {
             if let Ok(res) = result_rx.try_recv() {
                 app.found_address = Some(res);
@@ -64,28 +81,39 @@ where
                 match app.state {
                     crate::app::AppState::Config => {
                         match key.code {
-                            KeyCode::Char(c) => app.enter_char(c),
                             KeyCode::Backspace => app.delete_char(),
                             KeyCode::Tab | KeyCode::Down => app.next_focus(),
                             KeyCode::BackTab | KeyCode::Up => app.previous_focus(),
+                            KeyCode::Right | KeyCode::Left | KeyCode::Char(' ')
+                                if app.input_focus_index < 3 || app.input_focus_index == 5 =>
+                            {
+                                // Toggle for Chain(0), Network(1), Type(2), Case(5)
+                                app.toggle_selection();
+                            }
                             KeyCode::Enter => {
-                                if app.input_focus_index == 3 {
-                                    // Start button index is 3 (Prefix=0, Suffix=1, Case=2, Start=3) - Wait, logic says focus 3 is start button
-                                    // Start search!
+                                // Allow Ctrl+Enter to start from anywhere, or regular Enter on Start Button (6)
+                                let is_ctrl = key.modifiers.contains(KeyModifiers::CONTROL)
+                                    || key.modifiers.contains(KeyModifiers::SUPER);
+                                if app.input_focus_index == 6 || is_ctrl {
+                                    // Start button index is 6
                                     app.state = crate::app::AppState::Searching;
                                     app.start_time = Some(Instant::now());
                                     on_search_start(
                                         app.prefix.clone(),
                                         app.suffix.clone(),
                                         app.case_sensitive,
+                                        app.chain,
+                                        app.network,
+                                        app.btc_type,
                                     );
-                                } else if app.input_focus_index == 2 {
-                                    app.toggle_case();
+                                } else if app.input_focus_index < 3 || app.input_focus_index == 5 {
+                                    app.toggle_selection();
                                 } else {
                                     app.next_focus();
                                 }
                             }
                             KeyCode::Esc => app.should_quit = true,
+                            KeyCode::Char(c) => app.enter_char(c),
                             _ => {}
                         }
                     }

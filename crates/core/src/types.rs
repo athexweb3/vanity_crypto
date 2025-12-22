@@ -1,59 +1,64 @@
 use hex;
 use std::fmt;
 
-/// Represents an Ethereum address (20 bytes).
+/// Represents a blockchain address with chain-specific strict types.
 #[derive(Clone, PartialEq, Eq, Hash)]
-pub struct Address(pub [u8; 20]);
+pub enum Address {
+    Ethereum([u8; 20]),
+    Bitcoin(String), // Compliant with BIP-58 (Base58Check), BIP-173 (Bech32), or BIP-350 (Bech32m)
+}
 
 impl fmt::Debug for Address {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "0x{}", hex::encode(self.0))
+        match self {
+            Address::Ethereum(bytes) => write!(f, "Ethereum(0x{})", hex::encode(bytes)),
+            Address::Bitcoin(addr) => write!(f, "Bitcoin({})", addr),
+        }
     }
 }
 
 impl fmt::Display for Address {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.to_checksum_display())
+        match self {
+            Address::Ethereum(bytes) => {
+                // Implement EIP-55 checksum validation
+                use sha3::{Digest, Keccak256};
+                let addr_hex = hex::encode(bytes);
+                let mut hasher = Keccak256::new();
+                hasher.update(addr_hex.as_bytes());
+                let checksum_hash = hasher.finalize();
+                let checksum_hex = hex::encode(checksum_hash);
+
+                let mut checksummed = String::with_capacity(42);
+                checksummed.push_str("0x");
+                for (c, hash_char) in addr_hex.chars().zip(checksum_hex.chars()) {
+                    if hash_char >= '8' {
+                        checksummed.push(c.to_ascii_uppercase());
+                    } else {
+                        checksummed.push(c);
+                    }
+                }
+                write!(f, "{}", checksummed)
+            }
+            Address::Bitcoin(addr) => {
+                // Bitcoin addresses are pre-validated upon creation (via bitcoin crate)
+                // Legacy: Case-sensitive Base58Check (BIP-58)
+                // SegWit: Case-insensitive Bech32 (BIP-173)
+                // Taproot: Case-insensitive Bech32m (BIP-350)
+                write!(f, "{}", addr)
+            }
+        }
     }
 }
 
 impl Address {
-    pub fn as_bytes(&self) -> &[u8; 20] {
-        &self.0
-    }
-
-    pub fn to_checksum_display(&self) -> String {
-        use sha3::{Digest, Keccak256};
-
-        // 1. Get lowercase hex without 0x
-        let addr_hex = hex::encode(self.0);
-
-        // 2. Hash the lowercase hex string
-        let mut hasher = Keccak256::new();
-        hasher.update(addr_hex.as_bytes());
-        let hash = hasher.finalize();
-
-        // 3. Convert hash to hex string to easily check nibbles (0-f)
-        let hash_hex = hex::encode(hash);
-
-        // 4. Build checksummed string
-        let mut checksummed = String::with_capacity(42);
-        checksummed.push_str("0x");
-
-        for (i, c) in addr_hex.chars().enumerate() {
-            // Check the ith char of the hash (nibble)
-            // If >= 8, uppercase the address char
-            let hash_char = hash_hex.chars().nth(i).unwrap();
-            let should_upper = hash_char >= '8';
-
-            if should_upper {
-                checksummed.push(c.to_ascii_uppercase());
-            } else {
-                checksummed.push(c);
-            }
+    /// Returns a simple hex string for pattern matching without checksum calculation
+    /// This is used in hot loops where checksumming is unnecessary overhead
+    pub fn to_match_string(&self) -> std::borrow::Cow<'_, str> {
+        match self {
+            Address::Ethereum(bytes) => std::borrow::Cow::Owned(hex::encode(bytes)),
+            Address::Bitcoin(s) => std::borrow::Cow::Borrowed(s),
         }
-
-        checksummed
     }
 }
 
@@ -61,7 +66,10 @@ impl Address {
 /// derived with Debug that redacts the actual key for safety logs,
 /// but Display shows it (assuming user intends to see it).
 #[derive(Clone, PartialEq, Eq)]
-pub struct PrivateKey(pub [u8; 32]);
+pub enum PrivateKey {
+    Ethereum([u8; 32]),
+    Bitcoin(String),
+}
 
 impl fmt::Debug for PrivateKey {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -71,13 +79,10 @@ impl fmt::Debug for PrivateKey {
 
 impl fmt::Display for PrivateKey {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "0x{}", hex::encode(self.0))
-    }
-}
-
-impl PrivateKey {
-    pub fn as_bytes(&self) -> &[u8; 32] {
-        &self.0
+        match self {
+            PrivateKey::Ethereum(bytes) => write!(f, "0x{}", hex::encode(bytes)),
+            PrivateKey::Bitcoin(wif) => write!(f, "{}", wif),
+        }
     }
 }
 
@@ -86,18 +91,22 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_eip55_checksum() {
-        // Test Vector from EIP-55
-        // 0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed
-        let hex_raw = "5aaeb6053f3e94c9b9a09f33669435e7ef1beaed";
-        let bytes = hex::decode(hex_raw).unwrap();
+    fn test_address_display() {
+        // Ethereum
+        let bytes = hex::decode("5aaeb6053f3e94c9b9a09f33669435e7ef1beaed").unwrap();
         let mut arr = [0u8; 20];
         arr.copy_from_slice(&bytes);
-        let addr = Address(arr);
-
+        let addr = Address::Ethereum(arr);
         assert_eq!(
-            addr.to_checksum_display(),
+            format!("{}", addr),
             "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed"
+        );
+
+        // Bitcoin (Bech32)
+        let btc_addr = Address::Bitcoin("bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4".to_string());
+        assert_eq!(
+            format!("{}", btc_addr),
+            "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4"
         );
     }
 
@@ -106,37 +115,53 @@ mod tests {
     proptest! {
         #[test]
         fn test_eip55_invariant(bytes in proptest::array::uniform20(0u8..255)) {
-            let addr = Address(bytes);
-            let checksummed = addr.to_checksum_display();
+            // EIP-55 checksum invariant: formatting and re-parsing should preserve bytes
+            let address = Address::Ethereum(bytes);
+            let formatted = format!("{}", address);
 
-            // 1. Length Check
-            assert_eq!(checksummed.len(), 42);
-            assert!(checksummed.starts_with("0x"));
+            // Verify it starts with 0x
+            assert!(formatted.starts_with("0x"));
 
-            // 2. Case Invariance
-            assert_eq!(
-                checksummed.to_lowercase(),
-                format!("0x{}", hex::encode(bytes))
-            );
+            // Verify the hex is exactly 40 characters (20 bytes)
+            assert_eq!(formatted.len(), 42); // "0x" + 40 hex chars
 
-            // 3. Logic Check (Self-Consistent)
-            let lower_hex = hex::encode(bytes);
-            let mut hasher = sha3::Keccak256::new();
-            use sha3::Digest;
-            hasher.update(lower_hex.as_bytes());
-            let hash = hasher.finalize();
-            let hash_hex = hex::encode(hash);
+            // Verify the checksumming is consistent
+            let formatted_again = format!("{}", address);
+            assert_eq!(formatted, formatted_again);
 
-            for (i, c) in lower_hex.chars().enumerate() {
-                let hash_nibble = hash_hex.chars().nth(i).unwrap();
-                let output_char = checksummed.chars().nth(i + 2).unwrap(); // +2 for 0x
+            // Verify EIP-55 checksum is correct:
+            // For each hex character, if the corresponding hash character >= '8', it should be uppercase
+            let addr_hex = hex::encode(bytes);
+            use sha3::{Digest, Keccak256};
+            let mut hasher = Keccak256::new();
+            hasher.update(addr_hex.as_bytes());
+            let checksum_hash = hasher.finalize();
+            let checksum_hex = hex::encode(checksum_hash);
 
-                if hash_nibble >= '8' {
-                    assert!(output_char.is_uppercase() || !c.is_alphabetic(),
-                        "Char at {} should be uppercase. Hash: {}, Addr: {}", i, hash_nibble, c);
+            // Skip "0x" prefix when checking
+            let formatted_without_prefix = &formatted[2..];
+            for (i, ((addr_char, formatted_char), hash_char)) in addr_hex
+                .chars()
+                .zip(formatted_without_prefix.chars())
+                .zip(checksum_hex.chars())
+                .enumerate()
+            {
+                if hash_char >= '8' {
+                    assert_eq!(
+                        formatted_char,
+                        addr_char.to_ascii_uppercase(),
+                        "Checksum mismatch at position {}: expected uppercase for hash_char={}",
+                        i,
+                        hash_char
+                    );
                 } else {
-                    assert!(output_char.is_lowercase() || !c.is_alphabetic(),
-                        "Char at {} should be lowercase. Hash: {}, Addr: {}", i, hash_nibble, c);
+                    assert_eq!(
+                        formatted_char,
+                        addr_char.to_ascii_lowercase(),
+                        "Checksum mismatch at position {}: expected lowercase for hash_char={}",
+                        i,
+                        hash_char
+                    );
                 }
             }
         }

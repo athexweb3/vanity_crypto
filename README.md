@@ -14,11 +14,18 @@
 [![Security Audit](https://github.com/athexweb3/vanity_crypto/actions/workflows/security.yml/badge.svg)](https://github.com/athexweb3/vanity_crypto/actions/workflows/security.yml)
 [![Benchmark](https://github.com/athexweb3/vanity_crypto/actions/workflows/benchmark.yml/badge.svg)](https://github.com/athexweb3/vanity_crypto/actions/workflows/benchmark.yml)
 
-**Vanity Crypto** is a high-performance, cryptographically secure Ethereum vanity address generator implementation. It is engineered to provide the highest possible search throughput on consumer hardware while maintaining strict distinctness of duties between key generation and verification.
+**Vanity Crypto** is a high-performance, cryptographically secure vanity address generator for **Ethereum** and **Bitcoin**. It is engineered to provide the highest possible search throughput on consumer hardware while maintaining strict distinctness of duties between key generation and verification.
 
 The library strictly adheres to the following standards:
+
+### Ethereum
 *   **[EIP-55](https://eips.ethereum.org/EIPS/eip-55)**: Mixed-case checksum address encoding.
 *   **[NIST FIPS 202](https://csrc.nist.gov/publications/detail/fips/202/final)**: SHA-3 Standard (Keccak-256).
+
+### Bitcoin
+*   **[BIP-173](https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki)**: SegWit Bech32 address format.
+*   **[BIP-350](https://github.com/bitcoin/bips/blob/master/bip-0350.mediawiki)**: Taproot Bech32m address format.
+*   **[BIP-58](https://github.com/bitcoin/bips/blob/master/bip-0058.mediawiki)**: Base58Check encoding for Legacy addresses.
 *   **[SEC 1](https://www.secg.org/sec1-v2.pdf)**: Elliptic Curve Cryptography (secp256k1).
 
 ## Architecture
@@ -26,10 +33,10 @@ The library strictly adheres to the following standards:
 The project employs a specific **Verify-after-Generate** architecture to eliminate single points of failure in the cryptographic logic.
 
 1.  **Entropy & Generation (Rust)**:
-    Using the `rand::OsRng` system entropy source, a 256-bit private key is generated. The corresponding public key is derived via `k256` (RustCrypto), and the address is computed via `keccak256`. This process is parallelized across all logical CPU cores using a work-stealing scheduler (`rayon`).
+    Using the `rand::OsRng` system entropy source, a 256-bit private key is generated. The corresponding public key and address are derived via RustCrypto or libsecp256k1. This process is parallelized across all logical CPU cores using a work-stealing scheduler (`rayon`).
 
 2.  **Cross-Verification (Python)**:
-    Upon identifying a candidate address matching the user's constraints, the key material is passed to an isolated subprocess. This process invokes the `eth_account` library (the reference Python implementation) to independently re-derive the address from the private key.
+    Upon identifying a candidate address matching the user's constraints, the key material is passed to an isolated subprocess. This process invokes reference Python implementations (`eth_account` for Ethereum, `base58`/`bech32` for Bitcoin) to independently re-derive the address from the private key.
 
 3.  **Validation**:
     The result is presented to the user **if and only if** the Rust-derived address and the Python-derived address are bitwise identical.
@@ -77,14 +84,33 @@ The binary launches into an interactive Terminal User Interface by default, prov
 ```bash
 vc
 ```
+*Shortcuts:* 
+- `Ctrl+Enter` / `Cmd+Enter`: Start search
+- `q` / `Esc`: Quit/Exit
 
-### Headless Mode
+### CLI Arguments
 For integration into automated pipelines, the CLI accepts arguments to bypass the TUI.
+
+```bash
+# Ethereum (default)
+vc --chain ethereum --prefix dead
+
+# Bitcoin (Legacy)
+vc --chain bitcoin --btc-type legacy --prefix 1bad
+
+# Bitcoin (SegWit)
+vc --chain bitcoin --btc-type segwit --prefix bc1q
+
+# Bitcoin (Taproot)
+vc --chain bitcoin --btc-type taproot --prefix bc1p
+```
 
 | Argument | Description |
 | :--- | :--- |
-| `--prefix <HEX>` | The case-insensitive hex string to search for. |
-| `--case-sensitive` | strictly enforce casing (e.g. `DeaD` vs `dead`). |
+| `--chain <ethereum\|bitcoin>` | Select the blockchain network (Default: ethereum). |
+| `--prefix <STRING>` | The case-insensitive string to search for. |
+| `--btc-type <legacy\|segwit\|taproot>` | **[Bitcoin]** The address type to generate. |
+| `--case-sensitive` | Strictly enforce casing (e.g. `DeaD` vs `dead`). |
 | `--threads <N>` | Override thread count (Default: logical core count). |
 | `--no-tui` | Disable the TUI and output only the final result JSON. |
 
@@ -96,7 +122,16 @@ To run the audit:
 
 ```bash
 # Requires Python 3.10+
-python3 tests/verify_validate/fuzz_test.py 1000
+# Install deps: pip install -r tests/verify_validate/requirements.txt
+
+# Audit Ethereum
+python3 tests/verify_validate/fuzz_test.py --chain ethereum
+
+# Audit Bitcoin (Legacy)
+python3 tests/verify_validate/fuzz_test.py --chain bitcoin --btc-type legacy
+
+# Audit Bitcoin (Taproot/Schnorr)
+python3 tests/verify_validate/fuzz_test.py --chain bitcoin --btc-type taproot
 ```
 
 ## License
