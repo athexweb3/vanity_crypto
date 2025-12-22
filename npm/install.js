@@ -90,6 +90,7 @@ function download(downloadUrl, dest) {
                     fs.chmodSync(dest, 0o755);
                 } catch (e) {
                     console.error('Failed to make binary executable: ' + e.message);
+                    process.exit(1);
                 }
             }
         });
