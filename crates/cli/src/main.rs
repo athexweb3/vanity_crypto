@@ -100,7 +100,6 @@ struct Args {
     /// Blockchain to generate address for
     #[arg(long, value_enum, default_value_t = Chain::Ethereum)]
     chain: Chain,
-
     /// Network (mainnet, testnet, regtest)
     #[arg(long, value_enum, default_value_t = Network::Mainnet)]
     network: Network,
