@@ -15,11 +15,6 @@
 [![Homebrew](https://img.shields.io/badge/homebrew-supported-FBB040.svg?logo=homebrew&logoColor=white)](https://github.com/athexweb3/vanity_crypto/tree/main/Formula)
 [![Scoop](https://img.shields.io/badge/scoop-supported-4084D0.svg?logo=windows&logoColor=white)](https://github.com/athexweb3/vanity_crypto/tree/main/scoop)
 
-[![CI - Linux](https://github.com/athexweb3/vanity_crypto/actions/workflows/ci-linux.yml/badge.svg)](https://github.com/athexweb3/vanity_crypto/actions/workflows/ci-linux.yml)
-[![CI - macOS](https://github.com/athexweb3/vanity_crypto/actions/workflows/ci-macos.yml/badge.svg)](https://github.com/athexweb3/vanity_crypto/actions/workflows/ci-macos.yml)
-[![CI - Windows](https://github.com/athexweb3/vanity_crypto/actions/workflows/ci-windows.yml/badge.svg)](https://github.com/athexweb3/vanity_crypto/actions/workflows/ci-windows.yml)
-[![Security Audit](https://github.com/athexweb3/vanity_crypto/actions/workflows/security.yml/badge.svg)](https://github.com/athexweb3/vanity_crypto/actions/workflows/security.yml)
-[![Benchmark](https://github.com/athexweb3/vanity_crypto/actions/workflows/benchmark.yml/badge.svg)](https://github.com/athexweb3/vanity_crypto/actions/workflows/benchmark.yml)
 
 **Vanity Crypto** is a high-performance, cryptographically secure vanity address generator for **Ethereum** and **Bitcoin**. It is engineered to provide the highest possible search throughput on consumer hardware while maintaining strict distinctness of duties between key generation and verification.
 
