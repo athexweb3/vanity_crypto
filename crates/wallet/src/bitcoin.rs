@@ -30,6 +30,11 @@ impl BitcoinVanityGenerator {
         network: Network,
         addr_type: BitcoinAddressType,
     ) -> Self {
+        let case_sensitive = match addr_type {
+            BitcoinAddressType::Legacy => true,
+            _ => case_sensitive,
+        };
+
         // Preprocess prefix and suffix based on case sensitivity
         let (prefix_processed, suffix_processed) = if case_sensitive {
             (prefix.to_string(), suffix.to_string())
