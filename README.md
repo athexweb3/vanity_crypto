@@ -10,6 +10,7 @@
 [![Benchmark](https://github.com/athexweb3/vanity_crypto/actions/workflows/benchmark.yml/badge.svg)](https://github.com/athexweb3/vanity_crypto/actions/workflows/benchmark.yml)
 [![Security Audit](https://github.com/athexweb3/vanity_crypto/actions/workflows/security.yml/badge.svg)](https://github.com/athexweb3/vanity_crypto/actions/workflows/security.yml)
 [![CodeQL](https://github.com/athexweb3/vanity_crypto/actions/workflows/codeql/badge.svg)](https://github.com/athexweb3/vanity_crypto/actions/workflows/codeql)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/<PROJECT_ID>)](https://app.codacy.com/gh/athexweb3/vanity_crypto/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 
 [![NPM](https://img.shields.io/badge/npm-supported-CB3837.svg?logo=npm&logoColor=white)](https://www.npmjs.com/package/vanity_crypto)
 [![Homebrew](https://img.shields.io/badge/homebrew-supported-FBB040.svg?logo=homebrew&logoColor=white)](https://github.com/athexweb3/vanity_crypto/tree/main/Formula)
