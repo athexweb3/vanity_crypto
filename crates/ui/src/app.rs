@@ -165,16 +165,13 @@ impl App {
         match self.input_focus_index {
             3 => {
                 // Prefix
-                // Prefix: Allow 0-9, a-f, A-F, x, plus Bitcoin chars (base58, bech32 chars)
-                if c.is_alphanumeric() {
-                    self.prefix.push(c);
-                }
+                // Allow any character; validation is handled by the matching logic.
+                self.prefix.push(c);
             }
             4 => {
                 // Suffix
-                if c.is_alphanumeric() {
-                    self.suffix.push(c);
-                }
+                // Allow any character; validation is handled by the matching logic.
+                self.suffix.push(c);
             }
             0 => {
                 // Chain

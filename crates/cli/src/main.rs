@@ -29,6 +29,35 @@ enum BtcType {
     Taproot,
 }
 
+impl From<Chain> for UiChain {
+    fn from(c: Chain) -> Self {
+        match c {
+            Chain::Ethereum => UiChain::Ethereum,
+            Chain::Bitcoin => UiChain::Bitcoin,
+        }
+    }
+}
+
+impl From<Network> for UiNetwork {
+    fn from(n: Network) -> Self {
+        match n {
+            Network::Mainnet => UiNetwork::Mainnet,
+            Network::Testnet => UiNetwork::Testnet,
+            Network::Regtest => UiNetwork::Regtest,
+        }
+    }
+}
+
+impl From<BtcType> for UiBtcType {
+    fn from(t: BtcType) -> Self {
+        match t {
+            BtcType::Legacy => UiBtcType::Legacy,
+            BtcType::Segwit => UiBtcType::SegWit,
+            BtcType::Taproot => UiBtcType::Taproot,
+        }
+    }
+}
+
 impl From<Network> for bitcoin::Network {
     fn from(n: Network) -> Self {
         match n {
@@ -171,20 +200,9 @@ fn main() {
         );
 
         // Convert CLI arguments to UI modules
-        let ui_chain = match cli_chain {
-            Chain::Ethereum => UiChain::Ethereum,
-            Chain::Bitcoin => UiChain::Bitcoin,
-        };
-        let ui_network = match cli_network {
-            Network::Mainnet => UiNetwork::Mainnet,
-            Network::Testnet => UiNetwork::Testnet,
-            Network::Regtest => UiNetwork::Regtest,
-        };
-        let ui_btc_type = match cli_btc_type {
-            BtcType::Legacy => UiBtcType::Legacy,
-            BtcType::Segwit => UiBtcType::SegWit,
-            BtcType::Taproot => UiBtcType::Taproot,
-        };
+        let ui_chain: UiChain = cli_chain.into();
+        let ui_network: UiNetwork = cli_network.into();
+        let ui_btc_type: UiBtcType = cli_btc_type.into();
 
         // Spawn search thread directly
         on_search_start(
@@ -220,20 +238,9 @@ fn main() {
         let initial_case = args.case_sensitive;
 
         // Map CLI args to UI initial state
-        let initial_ui_chain = match cli_chain {
-            Chain::Ethereum => UiChain::Ethereum,
-            Chain::Bitcoin => UiChain::Bitcoin,
-        };
-        let initial_ui_network = match cli_network {
-            Network::Mainnet => UiNetwork::Mainnet,
-            Network::Testnet => UiNetwork::Testnet,
-            Network::Regtest => UiNetwork::Regtest,
-        };
-        let initial_ui_btc_type = match cli_btc_type {
-            BtcType::Legacy => UiBtcType::Legacy,
-            BtcType::Segwit => UiBtcType::SegWit,
-            BtcType::Taproot => UiBtcType::Taproot,
-        };
+        let initial_ui_chain: UiChain = cli_chain.into();
+        let initial_ui_network: UiNetwork = cli_network.into();
+        let initial_ui_btc_type: UiBtcType = cli_btc_type.into();
 
         if start_immediately {
             on_search_start(
