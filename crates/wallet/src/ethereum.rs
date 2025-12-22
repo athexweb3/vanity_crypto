@@ -33,8 +33,6 @@ impl EthereumVanityGenerator {
         } else {
             addr_str.to_lowercase()
         };
-        // Ensure we compare against the raw hex part
-        let target = target.trim_start_matches("0x");
 
         let p_match = if !self.prefix.is_empty() {
             let p = if self.case_sensitive {

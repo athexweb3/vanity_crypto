@@ -2,6 +2,7 @@ use clap::{Parser, ValueEnum};
 use std::sync::atomic::AtomicU64;
 use std::sync::Arc;
 use std::{sync::mpsc, thread};
+use vanity_core::VanityGenerator;
 use vanity_ui::{
     app::{BitcoinType as UiBtcType, Chain as UiChain, Network as UiNetwork},
     run_tui,
@@ -295,35 +296,26 @@ fn run_verification(pk: &str) {
 }
 
 fn run_batch_generation(count: u64, args: &Args) {
-    // Create generator for batch processing
-    let chain = args.chain.clone();
-    let network = args.network.clone();
-    let btc_type = args.btc_type.clone();
-
-    match chain {
-        Chain::Ethereum => {
-            let gen = EthereumVanityGenerator::new("", "", false);
-            for _ in 0..count {
-                let (pk, addr) = gen.search(None);
-                println!("{{\"pk\": \"{}\", \"addr\": \"{}\"}}", pk, addr);
-            }
-        }
+    // Create generator for batch processing using a trait object to avoid code duplication
+    let gen: Box<dyn VanityGenerator> = match args.chain {
+        Chain::Ethereum => Box::new(EthereumVanityGenerator::new("", "", false)),
         Chain::Bitcoin => {
-            let net = match network {
+            let net = match args.network {
                 Network::Mainnet => bitcoin::Network::Bitcoin,
                 Network::Testnet => bitcoin::Network::Testnet,
                 Network::Regtest => bitcoin::Network::Regtest,
             };
-            let t = match btc_type {
+            let t = match args.btc_type {
                 BtcType::Legacy => BitcoinAddressType::Legacy,
                 BtcType::Segwit => BitcoinAddressType::SegWit,
                 BtcType::Taproot => BitcoinAddressType::Taproot,
             };
-            let gen = BitcoinVanityGenerator::new("", "", false, net, t);
-            for _ in 0..count {
-                let (pk, addr) = gen.search(None);
-                println!("{{\"pk\": \"{}\", \"addr\": \"{}\"}}", pk, addr);
-            }
+            Box::new(BitcoinVanityGenerator::new("", "", false, net, t))
         }
+    };
+
+    for _ in 0..count {
+        let (pk, addr) = gen.generate();
+        println!("{{\"pk\": \"{}\", \"addr\": \"{}\"}}", pk, addr);
     }
 }
