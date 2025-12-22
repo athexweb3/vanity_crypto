@@ -44,13 +44,13 @@ jobs:
         run: cargo test --verbose
 
       - name: Run Fuzz Verification (Ethereum)
-        run: python tests/verify_validate/fuzz_test.py --chain ethereum 500
+        run: python tests/verify_validate/fuzz_test.py --chain ethereum --count 500
 
       - name: Run Fuzz Verification (Bitcoin Legacy)
-        run: python tests/verify_validate/fuzz_test.py --chain bitcoin --btc-type legacy 200
+        run: python tests/verify_validate/fuzz_test.py --chain bitcoin --btc-type legacy --count 200
 
       - name: Run Fuzz Verification (Bitcoin SegWit)
-        run: python tests/verify_validate/fuzz_test.py --chain bitcoin --btc-type segwit 200
+        run: python tests/verify_validate/fuzz_test.py --chain bitcoin --btc-type segwit --count 200
 
       - name: Run Fuzz Verification (Bitcoin Taproot)
-        run: python tests/verify_validate/fuzz_test.py --chain bitcoin --btc-type taproot 200
+        run: python tests/verify_validate/fuzz_test.py --chain bitcoin --btc-type taproot --count 200
