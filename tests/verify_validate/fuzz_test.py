@@ -10,8 +10,8 @@ import argparse
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
     from main import get_bitcoin_address, Account
-except ImportError:
-    print("[ERROR] Could not import 'main.py' verification logic.")
+except ImportError as e:
+    print(f"[ERROR] Could not import 'main.py' verification logic: {e}")
     sys.exit(1)
 
 def run_fuzz_test(count, chain, network, btc_type):

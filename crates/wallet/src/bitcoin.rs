@@ -88,7 +88,7 @@ impl BitcoinVanityGenerator {
 
                 let addr_str = match self.addr_type {
                     BitcoinAddressType::Legacy => {
-                        let pubkey = PublicKey::new(public_key);
+                        let pubkey = PublicKey::from(CompressedPublicKey(public_key));
                         Address::p2pkh(pubkey, self.network).to_string()
                     }
                     BitcoinAddressType::SegWit => {
@@ -128,7 +128,7 @@ impl VanityGenerator for BitcoinVanityGenerator {
 
         let addr_str = match self.addr_type {
             BitcoinAddressType::Legacy => {
-                let pubkey = PublicKey::new(public_key);
+                let pubkey = PublicKey::from(CompressedPublicKey(public_key));
                 Address::p2pkh(pubkey, self.network).to_string()
             }
             BitcoinAddressType::SegWit => {
