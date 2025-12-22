@@ -60,20 +60,6 @@ impl Address {
             Address::Bitcoin(s) => std::borrow::Cow::Borrowed(s),
         }
     }
-
-    /// Returns the string representation useful for pattern matching
-    /// For Ethereum, returns lowercase hex (no 0x prefix) for efficient searching?
-    /// Or returns full string?
-    /// The matching logic usually strips prefixes/suffixes.
-    /// Returns standard string representation
-    pub fn as_str(&self) -> std::borrow::Cow<'_, str> {
-        match self {
-            // Use raw bytes for internal operations
-            // BUT, `as_str` is usually expected to be "the address string".
-            Address::Ethereum(_) => std::borrow::Cow::Owned(self.to_string()),
-            Address::Bitcoin(s) => std::borrow::Cow::Borrowed(s),
-        }
-    }
 }
 
 /// Represents a 32-byte Private Key.
