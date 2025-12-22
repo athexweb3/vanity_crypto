@@ -1,5 +1,7 @@
 name: "Linux CI"
 
+permissions: read-all
+
 on:
   push:
     branches: [ "master", "main" ]

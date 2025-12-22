@@ -87,7 +87,7 @@ function download(downloadUrl, dest) {
             // Make it executable
             if (platform !== 'win32') {
                 try {
-                    execSync(`chmod +x ${dest}`);
+                    fs.chmodSync(dest, 0o755);
                 } catch (e) {
                     console.error('Failed to make binary executable: ' + e.message);
                 }
