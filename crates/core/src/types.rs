@@ -86,16 +86,6 @@ impl fmt::Display for PrivateKey {
     }
 }
 
-impl PrivateKey {
-    /// Returns reference to Ethereum bytes if applicable
-    pub fn as_ethereum_bytes(&self) -> Option<&[u8; 32]> {
-        match self {
-            PrivateKey::Ethereum(bytes) => Some(bytes),
-            _ => None,
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

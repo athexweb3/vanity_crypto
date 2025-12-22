@@ -70,37 +70,12 @@ impl EthereumVanityGenerator {
         &self,
         progress: Option<Arc<std::sync::atomic::AtomicU64>>,
     ) -> (PrivateKey, Address) {
-        // Rayon's infinite iterator
         rayon::iter::repeat(())
             .map(|_| {
                 if let Some(p) = &progress {
                     p.fetch_add(1, Ordering::Relaxed);
                 }
-
-                // Thread-local generator
-                let bytes: [u8; 32] = rand::random();
-
-                let signing_key =
-                    SigningKey::from_bytes(&bytes.into()).expect("valid key from random");
-                let verifying_key = VerifyingKey::from(&signing_key);
-                let encoded_point = verifying_key.to_encoded_point(false);
-                let encoded = encoded_point.as_bytes();
-                // Skip the uncompressed prefix (0x04)
-                let public_key_bytes = &encoded[1..];
-
-                let mut hasher = Keccak256::new();
-                hasher.update(public_key_bytes);
-                let hash = hasher.finalize();
-
-                let mut address_bytes = [0u8; 20];
-                address_bytes.copy_from_slice(&hash[12..]);
-
-                // Address::Ethereum Display impl handles checksum.
-                // Store raw bytes.
-                let address = Address::Ethereum(address_bytes);
-                let pk = PrivateKey::Ethereum(bytes);
-
-                (pk, address)
+                Self::generate_keypair()
             })
             .find_any(|(_pk, addr)| {
                 if self.case_sensitive {
@@ -111,11 +86,9 @@ impl EthereumVanityGenerator {
             })
             .expect("Infinite iterator execution")
     }
-}
 
-impl VanityGenerator for EthereumVanityGenerator {
-    fn generate(&self) -> (PrivateKey, Address) {
-        // Single-threaded optimization for batch generation
+    /// Shared logical core for key generation
+    fn generate_keypair() -> (PrivateKey, Address) {
         let bytes: [u8; 32] = rand::random();
 
         let signing_key = SigningKey::from_bytes(&bytes.into()).expect("valid key from random");
@@ -136,6 +109,13 @@ impl VanityGenerator for EthereumVanityGenerator {
         let pk = PrivateKey::Ethereum(bytes);
 
         (pk, address)
+    }
+}
+
+impl VanityGenerator for EthereumVanityGenerator {
+    fn generate(&self) -> (PrivateKey, Address) {
+        // Single-threaded optimization for batch generation
+        Self::generate_keypair()
     }
 }
 

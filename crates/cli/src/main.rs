@@ -78,6 +78,22 @@ impl From<BtcType> for BitcoinAddressType {
     }
 }
 
+fn convert_network(n: UiNetwork) -> bitcoin::Network {
+    match n {
+        UiNetwork::Mainnet => bitcoin::Network::Bitcoin,
+        UiNetwork::Testnet => bitcoin::Network::Testnet,
+        UiNetwork::Regtest => bitcoin::Network::Regtest,
+    }
+}
+
+fn convert_btc_type(t: UiBtcType) -> BitcoinAddressType {
+    match t {
+        UiBtcType::Legacy => BitcoinAddressType::Legacy,
+        UiBtcType::SegWit => BitcoinAddressType::SegWit,
+        UiBtcType::Taproot => BitcoinAddressType::Taproot,
+    }
+}
+
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
@@ -167,18 +183,10 @@ fn main() {
                 }
                 UiChain::Bitcoin => {
                     // Map UI Network to Bitcoin Network
-                    let net = match p_network {
-                        UiNetwork::Mainnet => bitcoin::Network::Bitcoin,
-                        UiNetwork::Testnet => bitcoin::Network::Testnet,
-                        UiNetwork::Regtest => bitcoin::Network::Regtest,
-                    };
+                    let net = convert_network(p_network);
 
                     // Map UI type to Wallet type
-                    let t = match p_btc_type {
-                        UiBtcType::Legacy => BitcoinAddressType::Legacy,
-                        UiBtcType::SegWit => BitcoinAddressType::SegWit,
-                        UiBtcType::Taproot => BitcoinAddressType::Taproot,
-                    };
+                    let t = convert_btc_type(p_btc_type);
                     let gen = BitcoinVanityGenerator::new(&p_prefix, &p_suffix, p_case, net, t);
                     gen.search(Some(my_attempts))
                 }
