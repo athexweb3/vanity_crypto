@@ -129,7 +129,6 @@ fn main() {
                         UiBtcType::SegWit => BitcoinAddressType::SegWit,
                         UiBtcType::Taproot => BitcoinAddressType::Taproot,
                     };
-                    // Default to Mainnet for now
                     let gen = BitcoinVanityGenerator::new(&p_prefix, &p_suffix, p_case, net, t);
                     gen.search(Some(my_attempts))
                 }

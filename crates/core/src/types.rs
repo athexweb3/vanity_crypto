@@ -31,8 +31,7 @@ impl fmt::Display for Address {
 
                 let mut checksummed = String::with_capacity(42);
                 checksummed.push_str("0x");
-                for (i, c) in addr_hex.chars().enumerate() {
-                    let hash_char = checksum_hex.chars().nth(i).unwrap();
+                for (c, hash_char) in addr_hex.chars().zip(checksum_hex.chars()) {
                     if hash_char >= '8' {
                         checksummed.push(c.to_ascii_uppercase());
                     } else {
@@ -156,6 +155,28 @@ mod tests {
             // Verify the checksumming is consistent
             let formatted_again = format!("{}", address);
             assert_eq!(formatted, formatted_again);
+
+            // Verify EIP-55 checksum is correct:
+            // For each hex character, if the corresponding hash character >= '8', it should be uppercase
+            let addr_hex = hex::encode(bytes);
+            use sha3::{Digest, Keccak256};
+            let mut hasher = Keccak256::new();
+            hasher.update(addr_hex.as_bytes());
+            let checksum_hash = hasher.finalize();
+            let checksum_hex = hex::encode(checksum_hash);
+
+            // Skip "0x" prefix when checking
+            let formatted_without_prefix = &formatted[2..];
+            for (i, (addr_char, formatted_char)) in addr_hex.chars().zip(formatted_without_prefix.chars()).enumerate() {
+                let hash_char = checksum_hex.chars().nth(i).unwrap();
+                if hash_char >= '8' {
+                    assert_eq!(formatted_char, addr_char.to_ascii_uppercase(),
+                        "Checksum mismatch at position {}: expected uppercase for hash_char={}", i, hash_char);
+                } else {
+                    assert_eq!(formatted_char, addr_char.to_ascii_lowercase(),
+                        "Checksum mismatch at position {}: expected lowercase for hash_char={}", i, hash_char);
+                }
+            }
         }
     }
 }
