@@ -167,14 +167,28 @@ mod tests {
 
             // Skip "0x" prefix when checking
             let formatted_without_prefix = &formatted[2..];
-            for (i, (addr_char, formatted_char)) in addr_hex.chars().zip(formatted_without_prefix.chars()).enumerate() {
-                let hash_char = checksum_hex.chars().nth(i).unwrap();
+            for (i, ((addr_char, formatted_char), hash_char)) in addr_hex
+                .chars()
+                .zip(formatted_without_prefix.chars())
+                .zip(checksum_hex.chars())
+                .enumerate()
+            {
                 if hash_char >= '8' {
-                    assert_eq!(formatted_char, addr_char.to_ascii_uppercase(),
-                        "Checksum mismatch at position {}: expected uppercase for hash_char={}", i, hash_char);
+                    assert_eq!(
+                        formatted_char,
+                        addr_char.to_ascii_uppercase(),
+                        "Checksum mismatch at position {}: expected uppercase for hash_char={}",
+                        i,
+                        hash_char
+                    );
                 } else {
-                    assert_eq!(formatted_char, addr_char.to_ascii_lowercase(),
-                        "Checksum mismatch at position {}: expected lowercase for hash_char={}", i, hash_char);
+                    assert_eq!(
+                        formatted_char,
+                        addr_char.to_ascii_lowercase(),
+                        "Checksum mismatch at position {}: expected lowercase for hash_char={}",
+                        i,
+                        hash_char
+                    );
                 }
             }
         }
