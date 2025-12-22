@@ -16,6 +16,7 @@ rand = { workspace = true }
 rayon = { workspace = true }
 anyhow = { workspace = true }
 hex = { workspace = true }
+bitcoin = { version = "0.32", features = ["rand", "serde"] }
 
 [dev-dependencies]
 proptest = { version = "1.9.0", features = ["proptest-macro"] }

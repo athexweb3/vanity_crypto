@@ -103,7 +103,7 @@ function run(command) {
     console.log('\nRunning verification...');
     try {
         require('./check-versions.js'); // Assuming check-versions logic runs on require or we can execute it
-        // Since check-versions runs instantly, we can just shell out to be safe context-wise
+        // Execute check-versions script
         // execSync('node scripts/check-versions.js', { stdio: 'inherit' });
     } catch (e) {
         console.error('Verification failed. Aborting commit.');

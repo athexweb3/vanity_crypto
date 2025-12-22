@@ -9,13 +9,9 @@ fn benchmark_search(c: &mut Criterion) {
 
     c.bench_function("generate_and_match_1_char", |b| {
         b.iter(|| {
-            // We search for just 1 successful match per iteration
-            // This includes RNG + fake work
-            // Ideally we'd benchmark just the `generate` step but our API bundles them.
-            // For a benchmark, we need deterministic or statisical significance.
-            // Since `search` is random, benchmarking it directly is noisy.
-            // Instead, let's benchmark the internal `generate` flow if possible,
-            // or just benchmark a very easy search.
+            // Search for single match
+            // Includes RNG overhead
+            // Benchmark the generation flow
             let _ = generator.generate();
         })
     });

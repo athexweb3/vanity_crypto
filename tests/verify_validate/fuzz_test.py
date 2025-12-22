@@ -3,104 +3,95 @@ import sys
 import json
 import subprocess
 import os
+import argparse
 
+# Import verification logic
+# Append current directory to path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
-    from eth_account import Account
+    from main import get_bitcoin_address, Account
 except ImportError:
-    # Try to auto-detect venv relative to this script
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    # Go up 2 levels: tests/verify_validate -> tests -> root
-    project_root = os.path.dirname(os.path.dirname(script_dir))
-    venv_python = os.path.join(project_root, ".venv", "bin", "python")
-    
-    if os.path.exists(venv_python) and sys.executable != venv_python:
-        print(f"[INFO] 'eth_account' missing in {sys.executable}.")
-        print(f"[INFO] Relaunching with venv python: {venv_python}")
-        os.execv(venv_python, [venv_python] + sys.argv)
-    
-    print("[ERROR] 'eth_account' is not installed.")
-    print("Please install requirements: pip install -r requirements.txt")
+    print("[ERROR] Could not import 'main.py' verification logic.")
     sys.exit(1)
 
-def run_fuzz_test(count=100):
-    print(f"[INFO] Starting Fuzz Test with {count} keys...")
+def run_fuzz_test(count, chain, network, btc_type):
+    print(f"\n[INFO] Starting Fuzz Test with {count} keys...")
+    print(f"       Chain: {chain}, Network: {network}, Type: {btc_type}")
     
-    # Path to binary (assuming debug build for dev)
-    # Move up two levels from 'tests/verify_validate' to project root
+    # Path to binary
     project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    
     binary_name = "vc"
-    if os.name == 'nt':
-        binary_name += ".exe"
-
+    if os.name == 'nt': binary_name += ".exe"
     binary_path = os.path.join(project_root, "target", "debug", binary_name)
     
     if not os.path.exists(binary_path):
         print(f"[ERROR] Binary not found at: {binary_path}")
         print("Run 'cargo build' first.")
-        # Try to list directory to help debugging
-        debug_dir = os.path.join(project_root, "target", "debug")
-        if os.path.exists(debug_dir):
-            print(f"Contents of {debug_dir}:")
-            try:
-                print(os.listdir(debug_dir))
-            except:
-                pass
         sys.exit(1)
 
-    print(f"   Using binary: {binary_path}")
-    print("   Generating batch...")
+    # Build command
+    cmd = [binary_path, "--generate-batch", str(count)]
+    cmd.extend(["--chain", chain])
+    cmd.extend(["--network", network])
+    if chain == 'bitcoin':
+        cmd.extend(["--btc-type", btc_type])
 
+    print("   Generating batch...")
     try:
-        # Run Rust binary in batch mode
-        result = subprocess.run(
-            [binary_path, "--generate-batch", str(count)], 
-            capture_output=True, 
-            text=True,
-            check=True
-        )
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
     except subprocess.CalledProcessError as e:
         print(f"❌ Rust binary failed: {e}")
         print(e.stderr)
         sys.exit(1)
 
-    # Parse output lines
     lines = result.stdout.strip().split('\n')
-    print(f"   Received {len(lines)} keys. Verifying...")
-    print("")
+    valid_lines = [l for l in lines if l.strip()]
+    print(f"   Received {len(valid_lines)} keys. Verifying...")
 
     passed = 0
     failed = 0
 
-    for i, line in enumerate(lines):
-        if not line.strip(): continue
+    for i, line in enumerate(valid_lines):
         try:
             data = json.loads(line)
             rust_pk = data['pk'].strip()
             rust_addr = data['addr'].strip()
 
-            # Verify with Python eth_account
-            # Ensure 0x prefix for eth_account
-            if not rust_pk.startswith("0x"):
-                pk_input = "0x" + rust_pk
-            else:
-                pk_input = rust_pk
+            if chain == 'ethereum':
+                if not rust_pk.startswith("0x"): rust_pk = "0x" + rust_pk
+                account = Account.from_key(rust_pk)
+                py_addr = account.address.lower()
+                rust_addr_norm = rust_addr.lower()
+                
+                if py_addr == rust_addr_norm:
+                    passed += 1
+                else:
+                    failed += 1
+                    print(f"FAIL Mismatch: Rust({rust_addr}) vs Py({account.address})")
 
-            account = Account.from_key(pk_input)
-            py_addr = account.address.lower()
-            
-            # Normalize rust address
-            rust_addr_norm = rust_addr.lower()
-
-            if py_addr == rust_addr_norm:
-                passed += 1
-            else:
-                failed += 1
-                print(f"[FAIL] Mismatch at index {i}:")
-                print(f"   Rust PK:   {rust_pk}")
-                print(f"   Rust Addr: {rust_addr}")
-                print(f"   Py Addr:   {account.address}")
-                print("")
+            elif chain == 'bitcoin':
+                # rust_pk is WIF
+                matches = get_bitcoin_address(rust_pk)
+                if not matches:
+                    print(f"FAIL Invalid WIF: {rust_pk}")
+                    failed += 1
+                    continue
+                
+                # Check against specific type
+                expected_addr = None
+                if btc_type == 'legacy': expected_addr = matches['legacy']
+                elif btc_type == 'segwit': expected_addr = matches['segwit']
+                elif btc_type == 'taproot': expected_addr = matches['taproot']
+                
+                if expected_addr == rust_addr:
+                    passed += 1
+                else:
+                    failed += 1
+                    print(f"[FAIL] Mismatch at index {i}:")
+                    print(f"   Rust Addr: {rust_addr}")
+                    print(f"   Py Addr:   {expected_addr}")
+                    print(f"   All Derivations: {matches}")
+                    print("")
 
         except Exception as e:
             failed += 1
@@ -110,7 +101,6 @@ def run_fuzz_test(count=100):
     print(f"PASSED: {passed}")
     print(f"FAILED: {failed}")
     print("-" * 40)
-    print("")
 
     if failed == 0 and passed > 0:
         print("[SUCCESS] Fuzz Test Passed: All keys match.")
@@ -120,10 +110,12 @@ def run_fuzz_test(count=100):
         sys.exit(1)
 
 if __name__ == "__main__":
-    count = 100
-    if len(sys.argv) > 1:
-        try:
-            count = int(sys.argv[1])
-        except:
-            pass
-    run_fuzz_test(count)
+    parser = argparse.ArgumentParser(description="Vanity Crypto Fuzz Test")
+    parser.add_argument("--count", type=int, default=100, help="Number of keys to generate")
+    parser.add_argument("--chain", type=str, default="ethereum", choices=["ethereum", "bitcoin"])
+    parser.add_argument("--network", type=str, default="mainnet", choices=["mainnet", "testnet", "regtest"])
+    parser.add_argument("--btc-type", type=str, default="segwit", choices=["legacy", "segwit", "taproot"])
+    
+    args = parser.parse_args()
+    
+    run_fuzz_test(args.count, args.chain, args.network, args.btc_type)

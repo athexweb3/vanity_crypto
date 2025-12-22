@@ -1,13 +1,48 @@
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 use std::sync::atomic::AtomicU64;
 use std::sync::Arc;
 use std::{sync::mpsc, thread};
-use vanity_ui::run_tui;
-use vanity_wallet::EthereumVanityGenerator;
+use vanity_ui::{
+    app::{BitcoinType as UiBtcType, Chain as UiChain, Network as UiNetwork},
+    run_tui,
+};
+use vanity_wallet::{BitcoinAddressType, BitcoinVanityGenerator, EthereumVanityGenerator};
+
+#[derive(Debug, Clone, ValueEnum)]
+enum Chain {
+    Ethereum,
+    Bitcoin,
+}
+
+#[derive(Debug, Clone, ValueEnum)]
+enum Network {
+    Mainnet,
+    Testnet,
+    Regtest,
+}
+
+#[derive(Debug, Clone, ValueEnum)]
+enum BtcType {
+    Legacy,
+    Segwit,
+    Taproot,
+}
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
+    /// Blockchain to generate address for
+    #[arg(long, value_enum, default_value_t = Chain::Ethereum)]
+    chain: Chain,
+
+    /// Network (mainnet, testnet, regtest)
+    #[arg(long, value_enum, default_value_t = Network::Mainnet)]
+    network: Network,
+
+    /// Bitcoin address type (only used if chain is bitcoin)
+    #[arg(long, value_enum, default_value_t = BtcType::Segwit)]
+    btc_type: BtcType,
+
     /// Prefix must start with this string (e.g., "0xDEAD")
     #[arg(short, long, default_value = "")]
     prefix: String,
@@ -20,7 +55,7 @@ struct Args {
     #[arg(long, default_value_t = false)]
     case_sensitive: bool,
 
-    /// Disable TUI and just print result to stdout
+    /// Print result to stdout without TUI
     #[arg(long, default_value_t = false)]
     no_tui: bool,
 
@@ -34,7 +69,7 @@ fn main() {
 
     // Check for batch generation
     if let Some(count) = args.generate_batch {
-        run_batch_generation(count);
+        run_batch_generation(count, &args);
         return;
     }
 
@@ -54,35 +89,52 @@ fn main() {
     let (tx, rx) = mpsc::channel::<(String, String)>();
     let attempts_clone = attempts.clone();
 
-    // Callback to start the actual generation thread
-    // We clone copies of necessary arc/channels to move into the closure
-    // WARNING: We must create new channels or Arc clones inside the closure
-    // effectively, or the closure must move them once.
-    // Actually, TUI calls this ONCE.
+    // Capture configuration
+    let cli_chain = args.chain.clone();
+    let cli_network = args.network.clone();
+    let cli_btc_type = args.btc_type.clone();
 
-    // To handle re-starts or delayed starts, we need a factory.
-    // But for this v1 form, we just start once.
-
-    // We need a thread-safe way to launch.
-    // Let's create a struct or just a move closure that knows how to spawn.
-
-    // Wait, the TUI loop runs on main thread. The closure runs on main thread.
-    // The closure spawns the worker thread. Perfect.
-
-    let on_search_start = move |p_prefix: String, p_suffix: String, p_case: bool| {
+    let on_search_start = move |p_prefix: String,
+                                p_suffix: String,
+                                p_case: bool,
+                                p_chain: UiChain,
+                                p_network: UiNetwork,
+                                p_btc_type: UiBtcType| {
         let p_prefix = if let Some(stripped) = p_prefix.strip_prefix("0x") {
             stripped.to_string()
         } else {
             p_prefix
         };
 
-        let gen = EthereumVanityGenerator::new(&p_prefix, &p_suffix, p_case);
-        let gen = Arc::new(gen);
         let my_attempts = attempts_clone.clone();
         let my_tx = tx.clone();
 
         thread::spawn(move || {
-            let (pk, addr) = gen.search(Some(my_attempts));
+            let (pk, addr) = match p_chain {
+                UiChain::Ethereum => {
+                    let gen = EthereumVanityGenerator::new(&p_prefix, &p_suffix, p_case);
+                    gen.search(Some(my_attempts))
+                }
+                UiChain::Bitcoin => {
+                    // Map UI Network to Bitcoin Network
+                    let net = match p_network {
+                        UiNetwork::Mainnet => bitcoin::Network::Bitcoin,
+                        UiNetwork::Testnet => bitcoin::Network::Testnet,
+                        UiNetwork::Regtest => bitcoin::Network::Regtest,
+                    };
+
+                    // Map UI type to Wallet type
+                    let t = match p_btc_type {
+                        UiBtcType::Legacy => BitcoinAddressType::Legacy,
+                        UiBtcType::SegWit => BitcoinAddressType::SegWit,
+                        UiBtcType::Taproot => BitcoinAddressType::Taproot,
+                    };
+                    // Default to Mainnet for now
+                    let gen = BitcoinVanityGenerator::new(&p_prefix, &p_suffix, p_case, net, t);
+                    gen.search(Some(my_attempts))
+                }
+            };
+
             // Send tuple (Address, PrivateKey) as strings
             let _ = my_tx.send((addr.to_string(), pk.to_string()));
         });
@@ -98,8 +150,31 @@ fn main() {
             prefix, args.suffix
         );
 
-        // Spawn manually here as we don't call run_tui
-        on_search_start(prefix, args.suffix, args.case_sensitive);
+        // Convert CLI arguments to UI modules
+        let ui_chain = match cli_chain {
+            Chain::Ethereum => UiChain::Ethereum,
+            Chain::Bitcoin => UiChain::Bitcoin,
+        };
+        let ui_network = match cli_network {
+            Network::Mainnet => UiNetwork::Mainnet,
+            Network::Testnet => UiNetwork::Testnet,
+            Network::Regtest => UiNetwork::Regtest,
+        };
+        let ui_btc_type = match cli_btc_type {
+            BtcType::Legacy => UiBtcType::Legacy,
+            BtcType::Segwit => UiBtcType::SegWit,
+            BtcType::Taproot => UiBtcType::Taproot,
+        };
+
+        // Spawn search thread directly
+        on_search_start(
+            prefix,
+            args.suffix,
+            args.case_sensitive,
+            ui_chain,
+            ui_network,
+            ui_btc_type,
+        );
 
         // Simple loop waiting for result
         loop {
@@ -112,7 +187,6 @@ fn main() {
         }
     } else {
         // Run TUI on main thread
-        // We pass empty strings if not started immediately, TUI will show empty form
         let initial_prefix = if start_immediately {
             prefix
         } else {
@@ -125,14 +199,31 @@ fn main() {
         };
         let initial_case = args.case_sensitive;
 
-        // If start_immediately is true, we must ALSO trigger the spawn.
-        // But run_tui doesn't automatically call the callback for us initially in our design.
-        // Let's manually spawn if needed, OR better: let run_tui handle it?
-        // Simpler: If start_immediately, we just call the closure once before TUI?
-        // No, `rx` is passed to TUI.
+        // Map CLI args to UI initial state
+        let initial_ui_chain = match cli_chain {
+            Chain::Ethereum => UiChain::Ethereum,
+            Chain::Bitcoin => UiChain::Bitcoin,
+        };
+        let initial_ui_network = match cli_network {
+            Network::Mainnet => UiNetwork::Mainnet,
+            Network::Testnet => UiNetwork::Testnet,
+            Network::Regtest => UiNetwork::Regtest,
+        };
+        let initial_ui_btc_type = match cli_btc_type {
+            BtcType::Legacy => UiBtcType::Legacy,
+            BtcType::Segwit => UiBtcType::SegWit,
+            BtcType::Taproot => UiBtcType::Taproot,
+        };
 
         if start_immediately {
-            on_search_start(initial_prefix.clone(), initial_suffix.clone(), initial_case);
+            on_search_start(
+                initial_prefix.clone(),
+                initial_suffix.clone(),
+                initial_case,
+                initial_ui_chain,
+                initial_ui_network,
+                initial_ui_btc_type,
+            );
         }
 
         let result = match run_tui(
@@ -142,6 +233,9 @@ fn main() {
             initial_suffix,
             initial_case,
             start_immediately,
+            initial_ui_chain,
+            initial_ui_network,
+            initial_ui_btc_type,
             on_search_start,
         ) {
             Ok(res) => res,
@@ -201,15 +295,36 @@ fn run_verification(pk: &str) {
     }
 }
 
-fn run_batch_generation(count: u64) {
-    let gen = EthereumVanityGenerator::new("", "", false);
+fn run_batch_generation(count: u64, args: &Args) {
+    // Create generator for batch processing
+    let chain = args.chain.clone();
+    let network = args.network.clone();
+    let btc_type = args.btc_type.clone();
 
-    for _ in 0..count {
-        // search(None) runs infinite loop until match.
-        // Since prefix is empty, it matches immediately.
-        let (pk, addr) = gen.search(None);
-
-        // JSON Lines format: {"pk": "...", "addr": "..."}
-        println!("{{\"pk\": \"{}\", \"addr\": \"{}\"}}", pk, addr);
+    match chain {
+        Chain::Ethereum => {
+            let gen = EthereumVanityGenerator::new("", "", false);
+            for _ in 0..count {
+                let (pk, addr) = gen.search(None);
+                println!("{{\"pk\": \"{}\", \"addr\": \"{}\"}}", pk, addr);
+            }
+        }
+        Chain::Bitcoin => {
+            let net = match network {
+                Network::Mainnet => bitcoin::Network::Bitcoin,
+                Network::Testnet => bitcoin::Network::Testnet,
+                Network::Regtest => bitcoin::Network::Regtest,
+            };
+            let t = match btc_type {
+                BtcType::Legacy => BitcoinAddressType::Legacy,
+                BtcType::Segwit => BitcoinAddressType::SegWit,
+                BtcType::Taproot => BitcoinAddressType::Taproot,
+            };
+            let gen = BitcoinVanityGenerator::new("", "", false, net, t);
+            for _ in 0..count {
+                let (pk, addr) = gen.search(None);
+                println!("{{\"pk\": \"{}\", \"addr\": \"{}\"}}", pk, addr);
+            }
+        }
     }
 }

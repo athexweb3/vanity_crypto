@@ -1,4 +1,4 @@
-use hex;
+// use hex; // Removed unused import
 use k256::ecdsa::{SigningKey, VerifyingKey};
 
 use rayon::prelude::*;
@@ -26,14 +26,15 @@ impl EthereumVanityGenerator {
     /// Checks if a given address string matches the criteria
     #[inline(always)]
     fn matches(&self, addr_str: &str) -> bool {
-        // addr_str is typically lower case hex without 0x if we use hex::encode
-        // But let's assume we compare normalized strings.
+        // Compare normalized strings.
 
         let target = if self.case_sensitive {
             addr_str.to_string()
         } else {
             addr_str.to_lowercase()
         };
+        // Ensure we compare against the raw hex part
+        let target = target.trim_start_matches("0x");
 
         let p_match = if !self.prefix.is_empty() {
             let p = if self.case_sensitive {
@@ -72,9 +73,6 @@ impl EthereumVanityGenerator {
         // Rayon's infinite iterator
         rayon::iter::repeat(())
             .map(|_| {
-                // Determine if we should check progress or just execute
-                // We check progress per batch or just allow relaxed atomic increment
-
                 if let Some(p) = &progress {
                     p.fetch_add(1, Ordering::Relaxed);
                 }
@@ -87,8 +85,7 @@ impl EthereumVanityGenerator {
                 let verifying_key = VerifyingKey::from(&signing_key);
                 let encoded_point = verifying_key.to_encoded_point(false);
                 let encoded = encoded_point.as_bytes();
-                // encoded[0] is 0x04 for uncompressed
-                // we want the rest
+                // Skip the uncompressed prefix (0x04)
                 let public_key_bytes = &encoded[1..];
 
                 let mut hasher = Keccak256::new();
@@ -98,15 +95,17 @@ impl EthereumVanityGenerator {
                 let mut address_bytes = [0u8; 20];
                 address_bytes.copy_from_slice(&hash[12..]);
 
-                let address = Address(address_bytes);
-                let pk = PrivateKey(bytes);
+                // Address::Ethereum Display impl handles checksum.
+                // Store raw bytes.
+                let address = Address::Ethereum(address_bytes);
+                let pk = PrivateKey::Ethereum(bytes);
 
                 (pk, address)
             })
             .find_any(|(_pk, addr)| {
-                // hex::encode returns lowercase
-                let s = hex::encode(addr.as_bytes());
-                self.matches(&s)
+                // Address::as_str() returns formatted string.
+                // matches() works on string.
+                self.matches(&addr.as_str())
             })
             .expect("Infinite iterator execution")
     }
@@ -133,9 +132,7 @@ mod tests {
             0, 0, 1,
         ];
 
-        // We need to manually invoke the inner logic or expose a helper
-        // Since search uses random, we need a deterministic derivation function for testing.
-        // Let's copy the derivation logic here to test it specifically.
+        // Use deterministic derivation logic for testing.
 
         let signing_key = SigningKey::from_bytes(&pk_bytes.into()).expect("valid key");
         let verifying_key = VerifyingKey::from(&signing_key);
@@ -192,8 +189,8 @@ mod tests {
         #[test]
         fn test_pk_length_invariant(bytes in proptest::array::uniform32(0u8..255)) {
             // Ensure any 32-byte array (valid scalar) produces a valid 20-byte address
-            // Note: Not all 32-byte arrays are valid secp256k1 scalars (curve order),
-            // but k256 handles checks. We mostly want to ensure NO PANICS on random inputs.
+            // Ensure robustness against invalid scalar inputs
+            // k256 handles checks; ensure robustness against random input.
 
             if let Ok(signing_key) = SigningKey::from_bytes(&bytes.into()) {
                 let verifying_key = VerifyingKey::from(&signing_key);
@@ -212,7 +209,7 @@ mod tests {
                 assert_eq!(address_bytes.len(), 20);
 
                 // NEW: Security Property - Key Usability
-                // Ensure the generated key can actually sign and verify a message
+                // Ensure the generated key can sign and verify a message
                 use k256::ecdsa::signature::Signer;
                 use k256::ecdsa::signature::Verifier;
 
