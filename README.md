@@ -3,6 +3,8 @@
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Language](https://img.shields.io/badge/language-Rust-orange.svg)](https://www.rust-lang.org)
 [![Version](https://img.shields.io/github/v/release/athexweb3/vanity_crypto?label=version)](https://github.com/athexweb3/vanity_crypto/releases)
+[![Security Audit](https://github.com/athexweb3/vanity_crypto/actions/workflows/security.yml/badge.svg)](https://github.com/athexweb3/vanity_crypto/actions/workflows/security.yml)
+[![CodeQL](https://github.com/athexweb3/vanity_crypto/actions/workflows/codeql/badge.svg)](https://github.com/athexweb3/vanity_crypto/actions/workflows/codeql)
 
 [![NPM](https://img.shields.io/badge/npm-supported-CB3837.svg?logo=npm&logoColor=white)](https://www.npmjs.com/package/vanity_crypto)
 [![Homebrew](https://img.shields.io/badge/homebrew-supported-FBB040.svg?logo=homebrew&logoColor=white)](https://github.com/athexweb3/vanity_crypto/tree/main/Formula)
