@@ -1,5 +1,6 @@
 # Vanity Crypto
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/e31286ec08fa4039ac57807b7a30641e)](https://app.codacy.com/gh/athexweb3/vanity_crypto?utm_source=github.com&utm_medium=referral&utm_content=athexweb3/vanity_crypto&utm_campaign=Badge_Grade)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Language](https://img.shields.io/badge/language-Rust-orange.svg)](https://www.rust-lang.org)
 [![Version](https://img.shields.io/github/v/release/athexweb3/vanity_crypto?label=version)](https://github.com/athexweb3/vanity_crypto/releases)
