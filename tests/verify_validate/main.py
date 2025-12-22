@@ -3,72 +3,6 @@ import sys
 import binascii
 import hashlib
 
-# --- SECP256K1 & MATH ---
-P = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F
-N = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
-G_X = 0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798
-G_Y = 0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8
-
-def point_add(p1, p2):
-    if p1 is None: return p2
-    if p2 is None: return p1
-    x1, y1 = p1
-    x2, y2 = p2
-    if x1 == x2 and y1 != y2: return None
-    if x1 == x2:
-        lam = (3 * x1 * x1 * pow(2 * y1, P - 2, P)) % P
-    else:
-        lam = ((y2 - y1) * pow(x2 - x1, P - 2, P)) % P
-    x3 = (lam * lam - x1 - x2) % P
-    y3 = (lam * (x1 - x3) - y1) % P
-    return (x3, y3)
-
-def point_mul(k, p):
-    r = None
-    while k > 0:
-        if k % 2 == 1: r = point_add(r, p)
-        p = point_add(p, p)
-        k //= 2
-    return r
-
-def lift_x(x):
-    if x >= P: return None
-    y_sq = (pow(x, 3, P) + 7) % P
-    y = pow(y_sq, (P + 1) // 4, P)
-    if pow(y, 2, P) != y_sq: return None
-    return (x, y if y % 2 == 0 else P - y)
-
-def tagged_hash(tag: str, data: bytes) -> bytes:
-    tag_hash = hashlib.sha256(tag.encode()).digest()
-    return hashlib.sha256(tag_hash + tag_hash + data).digest()
-
-# --- BECH32M ---
-BECH32M_CONST = 0x2bc830a3
-
-def bech32_polymod(values):
-    GEN = [0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3]
-    chk = 1
-    for v in values:
-        b = (chk >> 25)
-        chk = (chk & 0x1ffffff) << 5 ^ v
-        for i in range(5):
-            chk ^= GEN[i] if ((b >> i) & 1) else 0
-    return chk
-
-def bech32_hrp_expand(hrp):
-    return [ord(x) >> 5 for x in hrp] + [0] + [ord(x) & 31 for x in hrp]
-
-def bech32_create_checksum(hrp, data, spec_const):
-    values = bech32_hrp_expand(hrp) + data
-    polymod = bech32_polymod(values + [0, 0, 0, 0, 0, 0]) ^ spec_const
-    return [(polymod >> 5 * (5 - i)) & 31 for i in range(6)]
-
-def bech32m_encode(hrp, data):
-    # Data is 5-bit integers
-    combined = data + bech32_create_checksum(hrp, data, BECH32M_CONST)
-    CHARSET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
-    return hrp + '1' + ''.join([CHARSET[d] for d in combined])
-
 # --- MAIN LOGIC ---
 
 try:
@@ -76,6 +10,9 @@ try:
     from eth_keys import keys
     import base58
     import bech32
+    # Use ecdsa library for Bitcoin ECC operations
+    from ecdsa import SECP256k1, VerifyingKey
+    from ecdsa.util import sigdecode_der
 except ImportError:
     import os
     print("[ERROR] Required libraries not found.")

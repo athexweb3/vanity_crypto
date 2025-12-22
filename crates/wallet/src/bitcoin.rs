@@ -29,9 +29,16 @@ impl BitcoinVanityGenerator {
         network: Network,
         addr_type: BitcoinAddressType,
     ) -> Self {
+        // Preprocess prefix and suffix based on case sensitivity
+        let (prefix_processed, suffix_processed) = if case_sensitive {
+            (prefix.to_string(), suffix.to_string())
+        } else {
+            (prefix.to_lowercase(), suffix.to_lowercase())
+        };
+
         Self {
-            prefix: prefix.to_string(),
-            suffix: suffix.to_string(),
+            prefix: prefix_processed,
+            suffix: suffix_processed,
             case_sensitive,
             network,
             addr_type,
@@ -40,35 +47,21 @@ impl BitcoinVanityGenerator {
 
     #[inline(always)]
     fn matches(&self, addr_str: &str) -> bool {
-        let target = if self.case_sensitive {
-            addr_str.to_string()
+        // Prefix and suffix are already preprocessed in new()
+        if self.case_sensitive {
+            let p_match = self.prefix.is_empty() || addr_str.starts_with(&self.prefix);
+            if !p_match {
+                return false;
+            }
+            self.suffix.is_empty() || addr_str.ends_with(&self.suffix)
         } else {
-            addr_str.to_lowercase()
-        };
-
-        let p_match = if !self.prefix.is_empty() {
-            let p = if self.case_sensitive {
-                self.prefix.clone()
-            } else {
-                self.prefix.to_lowercase()
-            };
-            target.starts_with(&p)
-        } else {
-            true
-        };
-
-        let s_match = if !self.suffix.is_empty() {
-            let s = if self.case_sensitive {
-                self.suffix.clone()
-            } else {
-                self.suffix.to_lowercase()
-            };
-            target.ends_with(&s)
-        } else {
-            true
-        };
-
-        p_match && s_match
+            let lower_addr = addr_str.to_lowercase();
+            let p_match = self.prefix.is_empty() || lower_addr.starts_with(&self.prefix);
+            if !p_match {
+                return false;
+            }
+            self.suffix.is_empty() || lower_addr.ends_with(&self.suffix)
+        }
     }
 
     pub fn search(
