@@ -3,6 +3,11 @@
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Language](https://img.shields.io/badge/language-Rust-orange.svg)](https://www.rust-lang.org)
 [![Version](https://img.shields.io/github/v/release/athexweb3/vanity_crypto?label=version)](https://github.com/athexweb3/vanity_crypto/releases)
+
+[![CI - Linux](https://github.com/athexweb3/vanity_crypto/actions/workflows/ci-linux.yml/badge.svg)](https://github.com/athexweb3/vanity_crypto/actions/workflows/ci-linux.yml)
+[![CI - macOS](https://github.com/athexweb3/vanity_crypto/actions/workflows/ci-macos.yml/badge.svg)](https://github.com/athexweb3/vanity_crypto/actions/workflows/ci-macos.yml)
+[![CI - Windows](https://github.com/athexweb3/vanity_crypto/actions/workflows/ci-windows.yml/badge.svg)](https://github.com/athexweb3/vanity_crypto/actions/workflows/ci-windows.yml)
+[![Benchmark](https://github.com/athexweb3/vanity_crypto/actions/workflows/benchmark.yml/badge.svg)](https://github.com/athexweb3/vanity_crypto/actions/workflows/benchmark.yml)
 [![Security Audit](https://github.com/athexweb3/vanity_crypto/actions/workflows/security.yml/badge.svg)](https://github.com/athexweb3/vanity_crypto/actions/workflows/security.yml)
 [![CodeQL](https://github.com/athexweb3/vanity_crypto/actions/workflows/codeql/badge.svg)](https://github.com/athexweb3/vanity_crypto/actions/workflows/codeql)
 
