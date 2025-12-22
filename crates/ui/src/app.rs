@@ -245,9 +245,4 @@ impl App {
             self.case_sensitive = !self.case_sensitive;
         }
     }
-
-    pub fn toggle_case(&mut self) {
-        // Deprecated name, redirected
-        self.toggle_selection();
-    }
 }

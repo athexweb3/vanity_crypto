@@ -86,7 +86,7 @@ vc
 ```
 *Shortcuts:* 
 - `Ctrl+Enter` / `Cmd+Enter`: Start search
-- `q` / `Esc`: Quantity/Exit
+- `q` / `Esc`: Quit/Exit
 
 ### CLI Arguments
 For integration into automated pipelines, the CLI accepts arguments to bypass the TUI.
@@ -108,7 +108,7 @@ vc --chain bitcoin --btc-type taproot --prefix bc1p
 | Argument | Description |
 | :--- | :--- |
 | `--chain <ethereum\|bitcoin>` | Select the blockchain network (Default: ethereum). |
-| `--prefix <HEX>` | The case-insensitive string to search for. |
+| `--prefix <STRING>` | The case-insensitive string to search for. |
 | `--btc-type <legacy\|segwit\|taproot>` | **[Bitcoin]** The address type to generate. |
 | `--case-sensitive` | Strictly enforce casing (e.g. `DeaD` vs `dead`). |
 | `--threads <N>` | Override thread count (Default: logical core count). |

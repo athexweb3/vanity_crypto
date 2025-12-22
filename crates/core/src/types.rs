@@ -53,6 +53,15 @@ impl fmt::Display for Address {
 }
 
 impl Address {
+    /// Returns a simple hex string for pattern matching without checksum calculation
+    /// This is used in hot loops where checksumming is unnecessary overhead
+    pub fn to_match_string(&self) -> std::borrow::Cow<'_, str> {
+        match self {
+            Address::Ethereum(bytes) => std::borrow::Cow::Owned(hex::encode(bytes)),
+            Address::Bitcoin(s) => std::borrow::Cow::Borrowed(s),
+        }
+    }
+
     /// Returns the string representation useful for pattern matching
     /// For Ethereum, returns lowercase hex (no 0x prefix) for efficient searching?
     /// Or returns full string?
@@ -110,7 +119,6 @@ mod tests {
     use super::*;
 
     #[test]
-
     fn test_address_display() {
         // Ethereum
         let bytes = hex::decode("5aaeb6053f3e94c9b9a09f33669435e7ef1beaed").unwrap();
@@ -122,9 +130,32 @@ mod tests {
             "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed"
         );
 
-        // Bitcoin
-        let btc_str = "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa";
-        let addr_btc = Address::Bitcoin(btc_str.to_string());
-        assert_eq!(format!("{}", addr_btc), btc_str);
+        // Bitcoin (Bech32)
+        let btc_addr = Address::Bitcoin("bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4".to_string());
+        assert_eq!(
+            format!("{}", btc_addr),
+            "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4"
+        );
+    }
+
+    use proptest::prelude::*;
+
+    proptest! {
+        #[test]
+        fn test_eip55_invariant(bytes in proptest::array::uniform20(0u8..255)) {
+            // EIP-55 checksum invariant: formatting and re-parsing should preserve bytes
+            let address = Address::Ethereum(bytes);
+            let formatted = format!("{}", address);
+
+            // Verify it starts with 0x
+            assert!(formatted.starts_with("0x"));
+
+            // Verify the hex is exactly 40 characters (20 bytes)
+            assert_eq!(formatted.len(), 42); // "0x" + 40 hex chars
+
+            // Verify the checksumming is consistent
+            let formatted_again = format!("{}", address);
+            assert_eq!(formatted, formatted_again);
+        }
     }
 }

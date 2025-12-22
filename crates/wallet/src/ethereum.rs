@@ -103,9 +103,8 @@ impl EthereumVanityGenerator {
                 (pk, address)
             })
             .find_any(|(_pk, addr)| {
-                // Address::as_str() returns formatted string.
-                // matches() works on string.
-                self.matches(&addr.as_str())
+                // Use to_match_string() to avoid expensive EIP-55 checksum calculation
+                self.matches(&addr.to_match_string())
             })
             .expect("Infinite iterator execution")
     }
