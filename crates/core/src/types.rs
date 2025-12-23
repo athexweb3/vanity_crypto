@@ -176,13 +176,13 @@ mod tests {
     #[test]
     fn test_solana_key_format() {
         // Test that Solana PrivateKey formats to full 64-byte Base58 string
-        let mut keypair_bytes = [1u8; 64]; // Fill with dummy data
-                                           // Make the first 32 bytes (seed) different from the last 32 (pubkey)
-        for (i, byte) in keypair_bytes.iter_mut().enumerate().take(32) {
+        let mut keypair_bytes = [0u8; 64];
+        let (seed, pubkey) = keypair_bytes.split_at_mut(32);
+        for (i, byte) in seed.iter_mut().enumerate() {
             *byte = i as u8;
         }
-        for (i, byte) in keypair_bytes.iter_mut().enumerate().skip(32) {
-            *byte = (64 - i) as u8;
+        for (i, byte) in pubkey.iter_mut().enumerate() {
+            *byte = (i + 32) as u8;
         }
 
         let pk = PrivateKey::Solana(keypair_bytes);
