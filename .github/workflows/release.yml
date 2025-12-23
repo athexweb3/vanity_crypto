@@ -211,19 +211,11 @@ jobs:
           mv ../vanity_crypto.rb.tmp Formula/vanity_crypto.rb
           mv ../vanity_crypto.json.tmp scoop/vanity_crypto.json
           
-          # 4. Commit & Push to Branch & PR
-          BRANCH_NAME="chore/manifests-$VERSION"
-          git checkout -b "$BRANCH_NAME"
+          # 4. Commit & Push directly to main
+          git checkout main
           git add Formula/vanity_crypto.rb scoop/vanity_crypto.json
-          git commit -m "chore: update manifests for v$VERSION" || echo "No changes to commit"
-          
-          # Pull latest main to prevent push rejection
-          git fetch origin main
-          git rebase origin/main || (echo "Rebase conflict detected, aborting" && git rebase --abort && exit 1)
-          
-          git push origin "$BRANCH_NAME"
-          
-          gh pr create --title "chore: update manifests for v$VERSION" --body "Automated manifest updates for release v$VERSION" --base main --head "$BRANCH_NAME"
+          git commit -m "chore: update manifests for v$VERSION [skip ci]" || echo "No changes to commit"
+          git push origin main
 
       - name: Upload Signatures to Release
         uses: softprops/action-gh-release@v2
