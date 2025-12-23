@@ -17,6 +17,8 @@ rayon = { workspace = true }
 anyhow = { workspace = true }
 hex = { workspace = true }
 bitcoin = { version = "0.32", features = ["rand", "serde"] }
+ed25519-dalek = "2.1"
+bs58 = "0.5"
 
 [dev-dependencies]
 proptest = { version = "1.9.0", features = ["proptest-macro"] }

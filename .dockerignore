@@ -1,9 +1,0 @@
-target/
-.git/
-.github/
-tests/
-benches/
-.venv/
-__pycache__/
-*.md
-LICENSE

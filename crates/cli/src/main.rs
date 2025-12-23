@@ -7,12 +7,15 @@ use vanity_ui::{
     app::{BitcoinType as UiBtcType, Chain as UiChain, Network as UiNetwork},
     run_tui,
 };
-use vanity_wallet::{BitcoinAddressType, BitcoinVanityGenerator, EthereumVanityGenerator};
+use vanity_wallet::{
+    BitcoinAddressType, BitcoinVanityGenerator, EthereumVanityGenerator, SolanaVanityGenerator,
+};
 
 #[derive(Debug, Clone, ValueEnum)]
 enum Chain {
     Ethereum,
     Bitcoin,
+    Solana,
 }
 
 #[derive(Debug, Clone, ValueEnum)]
@@ -34,6 +37,7 @@ impl From<Chain> for UiChain {
         match c {
             Chain::Ethereum => UiChain::Ethereum,
             Chain::Bitcoin => UiChain::Bitcoin,
+            Chain::Solana => UiChain::Solana,
         }
     }
 }
@@ -189,6 +193,10 @@ fn main() {
                     let gen = BitcoinVanityGenerator::new(&p_prefix, &p_suffix, p_case, net, t);
                     gen.search(Some(my_attempts))
                 }
+                UiChain::Solana => {
+                    let gen = SolanaVanityGenerator::new(&p_prefix, &p_suffix, p_case);
+                    gen.search(Some(my_attempts))
+                }
             };
 
             // Send tuple (Address, PrivateKey) as strings
@@ -292,11 +300,11 @@ fn run_verification(pk: &str) {
     println!("\n[INFO] Running Independent Verification (Python)...");
 
     // Path relative to binary execution (usually project root in dev)
-    let script_path = std::path::Path::new("tests/verify_validate/main.py");
+    let script_path = std::path::Path::new("tests/verify_validate/run.py");
 
     // Check for script exists
     if !script_path.exists() {
-        println!("⚠️  Verification script 'tests/verify_validate/main.py' not found. Skipping auto-verification.");
+        println!("⚠️  Verification script 'tests/verify_validate/run.py' not found. Skipping auto-verification.");
         return;
     }
 
@@ -338,6 +346,7 @@ fn run_batch_generation(count: u64, args: &Args) {
             let t = args.btc_type.clone().into();
             Box::new(BitcoinVanityGenerator::new("", "", false, net, t))
         }
+        Chain::Solana => Box::new(SolanaVanityGenerator::new("", "", false)), // No prefix/suffix for batch random
     };
 
     for _ in 0..count {

@@ -6,6 +6,7 @@ use std::fmt;
 pub enum Address {
     Ethereum([u8; 20]),
     Bitcoin(String), // Compliant with BIP-58 (Base58Check), BIP-173 (Bech32), or BIP-350 (Bech32m)
+    Solana(String),  // Base58 encoded string
 }
 
 impl fmt::Debug for Address {
@@ -13,6 +14,7 @@ impl fmt::Debug for Address {
         match self {
             Address::Ethereum(bytes) => write!(f, "Ethereum(0x{})", hex::encode(bytes)),
             Address::Bitcoin(addr) => write!(f, "Bitcoin({})", addr),
+            Address::Solana(addr) => write!(f, "Solana({})", addr),
         }
     }
 }
@@ -47,6 +49,7 @@ impl fmt::Display for Address {
                 // Taproot: Case-insensitive Bech32m (BIP-350)
                 write!(f, "{}", addr)
             }
+            Address::Solana(addr) => write!(f, "{}", addr),
         }
     }
 }
@@ -58,6 +61,7 @@ impl Address {
         match self {
             Address::Ethereum(bytes) => std::borrow::Cow::Owned(hex::encode(bytes)),
             Address::Bitcoin(s) => std::borrow::Cow::Borrowed(s),
+            Address::Solana(s) => std::borrow::Cow::Borrowed(s),
         }
     }
 }
@@ -69,6 +73,7 @@ impl Address {
 pub enum PrivateKey {
     Ethereum([u8; 32]),
     Bitcoin(String),
+    Solana([u8; 64]), // Solana keypairs are 64 bytes (32 private + 32 public)
 }
 
 impl fmt::Debug for PrivateKey {
@@ -82,6 +87,7 @@ impl fmt::Display for PrivateKey {
         match self {
             PrivateKey::Ethereum(bytes) => write!(f, "0x{}", hex::encode(bytes)),
             PrivateKey::Bitcoin(wif) => write!(f, "{}", wif),
+            PrivateKey::Solana(bytes) => write!(f, "{}", bs58::encode(&bytes[..]).into_string()),
         }
     }
 }
@@ -165,5 +171,34 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn test_solana_key_format() {
+        // Test that Solana PrivateKey formats to full 64-byte Base58 string
+        let mut keypair_bytes = [0u8; 64];
+        let (seed, pubkey) = keypair_bytes.split_at_mut(32);
+        for (i, byte) in seed.iter_mut().enumerate() {
+            *byte = i as u8;
+        }
+        for (i, byte) in pubkey.iter_mut().enumerate() {
+            *byte = (i + 32) as u8;
+        }
+
+        let pk = PrivateKey::Solana(keypair_bytes);
+        let display_str = format!("{}", pk);
+
+        // Verify length
+        // 64 bytes in Base58 is approx 87-88 chars
+        assert!(
+            display_str.len() > 80,
+            "Solana private key string too short: {}",
+            display_str.len()
+        );
+
+        // Verify round trip (decode base58 -> 64 bytes)
+        let decoded = bs58::decode(&display_str).into_vec().unwrap();
+        assert_eq!(decoded.len(), 64, "Decoded Base58 length mismatch");
+        assert_eq!(decoded, keypair_bytes.to_vec(), "Decoded content mismatch");
     }
 }

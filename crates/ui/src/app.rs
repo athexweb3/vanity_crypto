@@ -6,13 +6,15 @@ use std::time::Instant;
 pub enum Chain {
     Ethereum,
     Bitcoin,
+    Solana,
 }
 
 impl Chain {
     pub fn next(&self) -> Self {
         match self {
             Chain::Ethereum => Chain::Bitcoin,
-            Chain::Bitcoin => Chain::Ethereum,
+            Chain::Bitcoin => Chain::Solana,
+            Chain::Solana => Chain::Ethereum,
         }
     }
 }
@@ -139,7 +141,7 @@ impl App {
         self.input_focus_index = (self.input_focus_index + 1) % 7;
 
         // Logic to skip Network(1) and BtcType(2) if Chain is Ethereum
-        if self.chain == Chain::Ethereum
+        if (self.chain == Chain::Ethereum || self.chain == Chain::Solana)
             && (self.input_focus_index == 1 || self.input_focus_index == 2)
         {
             self.input_focus_index = 3; // Skip to Prefix
@@ -154,7 +156,7 @@ impl App {
         }
 
         // Logic to skip Network(1) and BtcType(2) if Chain is Ethereum
-        if self.chain == Chain::Ethereum
+        if (self.chain == Chain::Ethereum || self.chain == Chain::Solana)
             && (self.input_focus_index == 1 || self.input_focus_index == 2)
         {
             self.input_focus_index = 0; // Skip back to Chain
@@ -181,6 +183,9 @@ impl App {
                 }
                 if c.eq_ignore_ascii_case(&'b') {
                     self.chain = Chain::Bitcoin;
+                }
+                if c.eq_ignore_ascii_case(&'s') {
+                    self.chain = Chain::Solana;
                 }
             }
             1 => {

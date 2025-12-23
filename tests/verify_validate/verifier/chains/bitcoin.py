@@ -1,80 +1,29 @@
-
-import sys
-import binascii
 import hashlib
+from ..utils import hash160, local_bech32_encode, Encoding
 
-# --- MAIN LOGIC ---
 
-# Optional Imports
-Account = None
-keys = None
+# Optional Dependencies
 base58 = None
 bech32 = None
 SECP256k1 = None
 SigningKey = None
 
-# 1. Try Ethereum Dependencies
-try:
-    from eth_account import Account
-    from eth_keys import keys
-except ImportError:
-    pass # Handled in verify_ethereum_key
-
-# 2. Try Bitcoin Dependencies
 try:
     import base58
     import bech32
     from ecdsa import SECP256k1, SigningKey
 except ImportError:
-    pass # Handled in verify_bitcoin_key
-
-def hash160(data):
-    sha = hashlib.sha256(data).digest()
-    return hashlib.new('ripemd160', sha).digest()
-
-# --- Bech32m Implementation (BIP-350) ---
-# Included to ensure rigorous correctness independent of installed library versions.
-
-BECH32_CHARSET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
-BECH32_CONST = 1
-BECH32M_CONST = 0x2bc830a3
-
-class Encoding:
-    BECH32 = 1
-    BECH32M = 2
-
-def bech32_polymod(values):
-    GEN = [0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3]
-    chk = 1
-    for v in values:
-        b = chk >> 25
-        chk = (chk & 0x1ffffff) << 5 ^ v
-        for i in range(5):
-            chk ^= GEN[i] if ((b >> i) & 1) else 0
-    return chk
-
-def bech32_hrp_expand(hrp):
-    return [ord(x) >> 5 for x in hrp] + [0] + [ord(x) & 31 for x in hrp]
-
-def bech32_create_checksum(hrp, data, spec):
-    values = bech32_hrp_expand(hrp) + data
-    const = BECH32M_CONST if spec == Encoding.BECH32M else BECH32_CONST
-    polymod = bech32_polymod(values + [0, 0, 0, 0, 0, 0]) ^ const
-    return [(polymod >> 5 * (5 - i)) & 31 for i in range(6)]
-
-def local_bech32_encode(hrp, data, spec):
-    combined = data + bech32_create_checksum(hrp, data, spec)
-    return hrp + '1' + ''.join([BECH32_CHARSET[d] for d in combined])
-
-# --- EXPORTED VERIFICATION FUNCTIONS ---
+    pass
 
 def get_bitcoin_address(wif_key):
     """
     Decodes WIF and returns a dictionary of derived addresses:
     { 'legacy': ..., 'segwit': ..., 'taproot': ... }
-    Returns None if WIF is invalid.
-    Uses audited ecdsa library for all cryptographic operations.
+    Returns None if WIF is invalid or deps missing.
     """
+    if not (base58 and bech32 and SECP256k1 and SigningKey):
+        return None
+
     wif_key = wif_key.strip()
     try:
         # 1. Base58 Decode WIF
@@ -175,40 +124,15 @@ def get_bitcoin_address(wif_key):
             'taproot': p2tr_addr
         }
 
-    except Exception as e:
+    except Exception:
         import traceback
         traceback.print_exc()
         return None
 
-def verify_ethereum_key(hex_key):
-    # Standalone CLI verification logic
-    print("\n[VERIFYING ETHEREUM KEY]")
-    
-    if Account is None or keys is None:
-        print("[ERROR] Verification Skipped. Required libraries not found.")
-        print("To verify Ethereum keys, install: pip install eth-account eth-keys")
-        return
-
-    hex_key = hex_key.strip().replace("0x", "")
-    if len(hex_key) != 64:
-        print(f"❌ INVALID LENGTH: 64 hex chars required.")
-        return
-    try:
-        pk_str = "0x" + hex_key
-        account = Account.from_key(pk_str)
-        print("✅ VALID Private Key Verified")
-        print(f"   Private Key: {pk_str}")
-        print(f"   Address:     {account.address}")
-        print("\n   Note: Key is mathematically valid and importable.")
-        print("")
-    except Exception as e:
-        print(f"❌ Key Error: {e}")
-        print("")
-
 def verify_bitcoin_key(wif_key):
     print("\n[VERIFYING BITCOIN WIF]")
     
-    if base58 is None or bech32 is None or SECP256k1 is None:
+    if not (base58 and bech32 and SECP256k1):
         print("[ERROR] Verification Skipped. Required libraries not found.")
         print("To verify Bitcoin keys, install: pip install base58 bech32 ecdsa")
         return
@@ -224,25 +148,3 @@ def verify_bitcoin_key(wif_key):
     else:
         print(f"❌ Invalid WIF or calculation error.")
         print("")
-
-if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        # Argument provided
-        print("\n--- Vanity Crypto Key Verifier ---")
-        input_key = sys.argv[1].strip()
-    elif not sys.stdin.isatty():
-        # Piped input
-        print("\n--- Vanity Crypto Key Verifier ---")
-        input_key = sys.stdin.read().strip()
-    else:
-        # Interactive mode
-        print("\n--- Vanity Crypto Key Verifier ---")
-        input_key = input("Enter Private Key (Hex or WIF): ").strip()
-    
-    # Detect input type (WIF vs Hex)
-    
-    if input_key.startswith("0x") or (len(input_key) == 64 and all(c in '0123456789abcdefABCDEF' for c in input_key)):
-        verify_ethereum_key(input_key)
-    else:
-        verify_bitcoin_key(input_key)
-

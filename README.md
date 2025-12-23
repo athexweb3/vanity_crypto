@@ -16,7 +16,7 @@
 [![Scoop](https://img.shields.io/badge/scoop-supported-4084D0.svg?logo=windows&logoColor=white)](https://github.com/athexweb3/vanity_crypto/tree/main/scoop)
 
 
-**Vanity Crypto** is a high-performance, cryptographically secure vanity address generator for **Ethereum** and **Bitcoin**. It is engineered to provide the highest possible search throughput on consumer hardware while maintaining strict distinctness of duties between key generation and verification.
+**Vanity Crypto** is a high-performance, cryptographically secure vanity address generator for **Ethereum**, **Bitcoin**, and **Solana**. It is engineered to provide the highest possible search throughput on consumer hardware while maintaining strict distinctness of duties between key generation and verification.
 
 The library strictly adheres to the following standards:
 
@@ -29,6 +29,10 @@ The library strictly adheres to the following standards:
 *   **[BIP-350](https://github.com/bitcoin/bips/blob/master/bip-0350.mediawiki)**: Taproot Bech32m address format.
 *   **[BIP-58](https://github.com/bitcoin/bips/blob/master/bip-0058.mediawiki)**: Base58Check encoding for Legacy addresses.
 *   **[SEC 1](https://www.secg.org/sec1-v2.pdf)**: Elliptic Curve Cryptography (secp256k1).
+
+### Solana
+*   **[Ed25519](https://ed25519.cr.yp.to/)**: High-speed Edwards-curve Digital Signature Algorithm.
+*   **[Base58](https://learn.bybit.com/blockchain/what-is-base58/)**: Standard Solana address encoding.
 
 ## Architecture
 
@@ -105,11 +109,14 @@ vc --chain bitcoin --btc-type segwit --prefix bc1q
 
 # Bitcoin (Taproot)
 vc --chain bitcoin --btc-type taproot --prefix bc1p
+
+# Solana
+vc --chain solana --prefix abc
 ```
 
 | Argument | Description |
 | :--- | :--- |
-| `--chain <ethereum\|bitcoin>` | Select the blockchain network (Default: ethereum). |
+| `--chain <ethereum\|bitcoin\|solana>` | Select the blockchain network (Default: ethereum). |
 | `--prefix <STRING>` | The case-insensitive string to search for. |
 | `--btc-type <legacy\|segwit\|taproot>` | **[Bitcoin]** The address type to generate. |
 | `--case-sensitive` | Strictly enforce casing (e.g. `DeaD` vs `dead`). |
