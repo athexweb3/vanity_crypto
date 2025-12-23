@@ -1,0 +1,50 @@
+name: Auto Tag Release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'Cargo.toml'
+
+permissions:
+  contents: write
+
+jobs:
+  tag-release:
+    name: Tag Release on Version Change
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for Version Change
+        id: version
+        run: |
+          # Get current version from Cargo.toml
+          CURRENT_VERSION=$(grep -m 1 '^version = ' Cargo.toml | cut -d '"' -f 2)
+          echo "Detected version: $CURRENT_VERSION"
+          
+          # Check if tag already exists
+          if git rev-parse "v$CURRENT_VERSION" >/dev/null 2>&1; then
+            echo "Tag v$CURRENT_VERSION already exists. Skipping."
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "New version detected."
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create and Push Tag
+        if: steps.version.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          TAG="v${{ steps.version.outputs.version }}"
+          echo "Tagging release $TAG"
+          
+          git tag -a "$TAG" -m "Release $TAG"
+          git push origin "$TAG"
