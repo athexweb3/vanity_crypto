@@ -1,6 +1,6 @@
 import hashlib
 from ..utils import hash160, local_bech32_encode, Encoding
-from ..consts import BECH32_CHARSET
+
 
 # Optional Dependencies
 base58 = None

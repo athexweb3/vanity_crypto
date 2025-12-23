@@ -31,7 +31,7 @@ def verify_solana_key(key_str):
     # Check deps first for better error message
     try:
         import base58
-        from nacl.signing import SigningKey
+        import nacl.signing
     except ImportError:
          print("[ERROR] Verification Skipped. Required libraries not found.")
          print("To verify Solana keys, install: pip install base58 pynacl")
@@ -48,7 +48,6 @@ def verify_solana_key(key_str):
     else:
         # Re-run strict check for specific error printing
         try:
-            import base58
             decoded = base58.b58decode(key_str)
             if len(decoded) != 64:
                 print(f"❌ INVALID LENGTH: 64 bytes required (decoded from {len(key_str)} chars). Found {len(decoded)} bytes.")

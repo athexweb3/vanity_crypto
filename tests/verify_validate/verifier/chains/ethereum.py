@@ -19,7 +19,7 @@ def verify_ethereum_key(hex_key):
 
     hex_key = hex_key.strip().replace("0x", "")
     if len(hex_key) != 64:
-        print(f"❌ INVALID LENGTH: 64 hex chars required.")
+        print("❌ INVALID LENGTH: 64 hex chars required.")
         return
     try:
         pk_str = "0x" + hex_key
