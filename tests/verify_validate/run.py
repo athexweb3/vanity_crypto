@@ -22,12 +22,21 @@ def main():
     # Ethereum: 64 hex chars (32 bytes) or 0x prefix
     if input_key.startswith("0x") or (len(input_key) == 64 and all(c in '0123456789abcdefABCDEF' for c in input_key)):
         verify_ethereum_key(input_key)
-    # Solana: Base58 string of ~87-88 chars (64 bytes)
-    elif len(input_key) > 80:
-        verify_solana_key(input_key)
-    # Bitcoin: WIF (Base58)
     else:
-        verify_bitcoin_key(input_key)
+        # Try to decode as Base58 to check for Solana or Bitcoin
+        try:
+            import base58
+            decoded = base58.b58decode(input_key)
+            # Solana keypairs are 64 bytes
+            if len(decoded) == 64:
+                verify_solana_key(input_key)
+            else:
+                # Assume Bitcoin WIF otherwise
+                verify_bitcoin_key(input_key)
+        except Exception:
+            # If base58 decoding fails, it's likely not a valid Solana or Bitcoin key,
+            # but we can let the Bitcoin verifier give the final error.
+            verify_bitcoin_key(input_key)
 
 if __name__ == "__main__":
     main()
