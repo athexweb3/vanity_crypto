@@ -6,7 +6,7 @@
     "architecture": {
         "64bit": {
             "url": "https://github.com/athexweb3/v0.2.0/releases/download/v0.2.0/vc-windows-amd64.exe",
-            "hash": "5ac577b1db56b66f13af2d89bd78a55347e61119fb6ce1fab4847b6702e863af"
+            "hash": "3f382b9099990568a7d7346bb5605c7041d9a38b1ffa4fdcfa699b32b099bece"
         }
     },
     "bin": [
