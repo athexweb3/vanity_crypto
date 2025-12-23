@@ -5,18 +5,6 @@ permissions: read-all
 on:
   push:
     branches: [ "master", "main" ]
-    paths-ignore:
-      - '**.md'
-      - 'LICENSE'
-      - 'docs/**'
-      - '.gitignore'
-  pull_request:
-    branches: [ "master", "main" ]
-    paths-ignore:
-      - '**.md'
-      - 'LICENSE'
-      - 'docs/**'
-      - '.gitignore'
   workflow_dispatch:
 
 env:
@@ -30,29 +18,49 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Check for Code Changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            src:
+              - '!**.md'
+              - '!LICENSE'
+              - '!docs/**'
+              - '!.gitignore'
+
       - name: Setup Environment
+        if: steps.filter.outputs.src == 'true'
         uses: ./.github/actions/setup-env
 
       - name: Check Formatting
+        if: steps.filter.outputs.src == 'true'
         run: cargo fmt -- --check
 
       - name: Linting (Clippy)
+        if: steps.filter.outputs.src == 'true'
         run: cargo clippy -- -D warnings
 
       - name: Build Debug Binary
+        if: steps.filter.outputs.src == 'true'
         run: cargo build
 
       - name: Run Rust Tests
+        if: steps.filter.outputs.src == 'true'
         run: cargo test --verbose
 
       - name: Run Fuzz Verification (Ethereum)
+        if: steps.filter.outputs.src == 'true'
         run: python tests/verify_validate/fuzz_test.py --chain ethereum --count 500
 
       - name: Run Fuzz Verification (Bitcoin Legacy)
+        if: steps.filter.outputs.src == 'true'
         run: python tests/verify_validate/fuzz_test.py --chain bitcoin --btc-type legacy --count 200
 
       - name: Run Fuzz Verification (Bitcoin SegWit)
+        if: steps.filter.outputs.src == 'true'
         run: python tests/verify_validate/fuzz_test.py --chain bitcoin --btc-type segwit --count 200
 
       - name: Run Fuzz Verification (Bitcoin Taproot)
+        if: steps.filter.outputs.src == 'true'
         run: python tests/verify_validate/fuzz_test.py --chain bitcoin --btc-type taproot --count 200
