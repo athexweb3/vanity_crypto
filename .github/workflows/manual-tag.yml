@@ -44,7 +44,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          VERSION="${{ env.VERSION }}"
+          VERSION="$VERSION"
           BRANCH_NAME="release/v$VERSION"
           
           git config user.name "github-actions[bot]"
@@ -71,5 +71,5 @@ jobs:
               --base main \
               --head "$BRANCH_NAME"
               
-            echo "✅ Release PR created! Merge it to trigger the release."
+            echo "Release PR created! Merge it to trigger the release."
           fi
