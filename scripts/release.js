@@ -65,16 +65,16 @@ function run(command) {
         process.exit(0);
     }
 
-    const confirm = await prompts({
+    const confirmUpdate = await prompts({
         type: 'confirm',
         name: 'value',
-        message: `Bump versions to ${targetVersion} and create git tag?`,
+        message: `Bump versions to ${targetVersion} in files?`,
         initial: true
     });
 
-    if (!confirm.value) process.exit(0);
+    if (!confirmUpdate.value) process.exit(0);
 
-    console.log('\n📝 Updating files...');
+    console.log('\nUpdating files...');
 
     // 1. Update package.json
     pkg.version = targetVersion;
@@ -102,12 +102,24 @@ function run(command) {
 
     console.log('\nRunning verification...');
     try {
-        require('./check-versions.js'); // Assuming check-versions logic runs on require or we can execute it
-        // Execute check-versions script
-        // execSync('node scripts/check-versions.js', { stdio: 'inherit' });
+        require('./check-versions.js');
     } catch (e) {
-        console.error('Verification failed. Aborting commit.');
+        console.error('Verification failed. Aborting.');
         process.exit(1);
+    }
+
+    const confirmGit = await prompts({
+        type: 'confirm',
+        name: 'value',
+        message: `Commit and Tag v${targetVersion}? (Select 'No' if triggering via PR)`,
+        initial: false
+    });
+
+    if (!confirmGit.value) {
+        console.log(`\nFiles updated to ${targetVersion}.`);
+        console.log(`Now commit these changes to your branch and open a PR.`);
+        console.log(`When merged, the auto-tag workflow will handle the release.`);
+        process.exit(0);
     }
 
     console.log('\nCommitting and Tagging...');
@@ -116,7 +128,7 @@ function run(command) {
         run(`git commit -m "chore: release v${targetVersion}"`);
         run(`git tag v${targetVersion}`);
         console.log(`Successfully tagged v${targetVersion}`);
-        console.log(`👉 Now run: git push origin v${targetVersion}`);
+        console.log(`Now run: git push origin v${targetVersion}`);
 
         const push = await prompts({
             type: 'confirm',
