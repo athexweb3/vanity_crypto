@@ -26,10 +26,12 @@ jobs:
         with:
           filters: |
             src:
-              - '!**.md'
-              - '!LICENSE'
-              - '!docs/**'
-              - '!.gitignore'
+              - 'crates/**'
+              - 'tests/**'
+              - 'scripts/**'
+              - 'Cargo.toml'
+              - 'Cargo.lock'
+              - '**/Cargo.toml'
 
       - name: Setup Environment
         if: steps.filter.outputs.src == 'true'
