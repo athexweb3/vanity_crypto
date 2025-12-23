@@ -36,16 +36,16 @@ jobs:
           LANGS="[]"
           
           if [ "${{ steps.filter.outputs.rust }}" == "true" ]; then
-            LANGS=$(echo $LANGS | jq '. + ["rust"]')
+            LANGS=$(echo $LANGS | jq -c '. + ["rust"]')
           fi
           
           if [ "${{ steps.filter.outputs.python }}" == "true" ]; then
-            LANGS=$(echo $LANGS | jq '. + ["python"]')
+            LANGS=$(echo $LANGS | jq -c '. + ["python"]')
           fi
           
           if [ "${{ steps.filter.outputs.javascript }}" == "true" ]; then
             # CodeQL uses 'javascript-typescript' for JS
-            LANGS=$(echo $LANGS | jq '. + ["javascript-typescript"]')
+            LANGS=$(echo $LANGS | jq -c '. + ["javascript-typescript"]')
           fi
           
           # If this is a scheduled run, analyze everything (fallback)
