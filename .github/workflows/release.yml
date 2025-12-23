@@ -209,7 +209,7 @@ jobs:
           
           # 4. Commit & Push
           git add Formula/vanity_crypto.rb scoop/vanity_crypto.json
-          git commit -m "chore: update release manifests [skip ci]" || echo "No changes to commit"
+          git commit -m "chore: release $VERSION" || echo "No changes to commit"
           git push origin main
 
       - name: Upload Signatures to Release
