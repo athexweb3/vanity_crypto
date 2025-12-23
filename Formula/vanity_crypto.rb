@@ -15,8 +15,13 @@ class VanityCrypto < Formula
   end
 
   def install
-    bin.install "vc-macos-arm64" => "vc" if OS.mac?
-    bin.install "vc-linux-amd64" => "vc" if OS.linux?
+    if OS.mac? && Hardware::CPU.arm?
+      bin.install "vc-macos-arm64" => "vc"
+    elsif OS.mac? && Hardware::CPU.intel?
+      bin.install "vc-macos-amd64" => "vc"
+    elsif OS.linux?
+      bin.install "vc-linux-amd64" => "vc"
+    end
   end
 
   test do
