@@ -3,7 +3,7 @@ resolver = "2"
 members = ["crates/core", "crates/wallet", "crates/ui", "crates/cli"]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = ["Athex Web3 <athexweb3@gmail.com>"]
 description = "A high-performance, secure, and beautiful Ethereum vanity address generator"
