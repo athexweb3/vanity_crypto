@@ -36,12 +36,7 @@ impl SolanaVanityGenerator {
             }
 
             // 1. Generate Keypair
-            // Workaround for `SigningKey::generate` feature issues: generate 32 random bytes
-            let mut secret_bytes = [0u8; 32];
-            csprng.fill_bytes(&mut secret_bytes);
-            let signing_key = SigningKey::from_bytes(&secret_bytes);
-            let verifying_key: VerifyingKey = signing_key.verifying_key();
-            let address = bs58::encode(verifying_key.as_bytes()).into_string();
+            let (signing_key, verifying_key, address) = generate_one(&mut csprng);
 
             // 2. Check Match
             let mut is_match = true;
@@ -94,13 +89,10 @@ impl SolanaVanityGenerator {
 impl VanityGenerator for SolanaVanityGenerator {
     fn generate(&self) -> (PrivateKey, Address) {
         let mut csprng = OsRng;
-        let mut secret_bytes = [0u8; 32];
-        csprng.fill_bytes(&mut secret_bytes);
-        let signing_key = SigningKey::from_bytes(&secret_bytes);
-        let verifying_key: VerifyingKey = signing_key.verifying_key();
-        let address = bs58::encode(verifying_key.as_bytes()).into_string();
+        let (signing_key, verifying_key, address) = generate_one(&mut csprng);
 
         let mut full_keypair = [0u8; 64];
+        let secret_bytes = signing_key.to_bytes();
         full_keypair[..32].copy_from_slice(&secret_bytes);
         full_keypair[32..].copy_from_slice(verifying_key.as_bytes());
 
@@ -108,15 +100,21 @@ impl VanityGenerator for SolanaVanityGenerator {
     }
 }
 
-/// Generates a random Solana keypair without checking for vanity patterns.
-/// Returns raw bytes of the seed and the address string.
-pub fn generate_random_address() -> (Vec<u8>, String) {
-    let mut csprng = OsRng;
+/// Generates a single internal Solana keypair + address.
+fn generate_one(csprng: &mut OsRng) -> (SigningKey, VerifyingKey, String) {
     let mut secret_bytes = [0u8; 32];
     csprng.fill_bytes(&mut secret_bytes);
     let signing_key = SigningKey::from_bytes(&secret_bytes);
     let verifying_key: VerifyingKey = signing_key.verifying_key();
     let address = bs58::encode(verifying_key.as_bytes()).into_string();
+    (signing_key, verifying_key, address)
+}
+
+/// Generates a random Solana keypair without checking for vanity patterns.
+/// Returns raw bytes of the seed and the address string.
+pub fn generate_random_address() -> (Vec<u8>, String) {
+    let mut csprng = OsRng;
+    let (signing_key, _, address) = generate_one(&mut csprng);
     (signing_key.to_bytes().to_vec(), address)
 }
 

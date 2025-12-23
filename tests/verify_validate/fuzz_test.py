@@ -96,7 +96,7 @@ def run_fuzz_test(count, chain, network, btc_type):
                     print(f"[FAIL] Mismatch at index {i}:")
                     print(f"   Rust Addr: {rust_addr}")
                     print(f"   Py Addr:   {expected_addr}")
-                    print(f"   Py Addr:   {expected_addr}")
+
                     print(f"   All Derivations: {matches}")
                     print("")
             
