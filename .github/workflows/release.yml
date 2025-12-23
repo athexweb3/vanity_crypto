@@ -179,9 +179,9 @@ jobs:
           # 4. Update Homebrew Formula
           sed -i "s/version \".*\"/version \"$VERSION\"/" Formula/vanity_crypto.rb
           # Update Brew Formula
-          sed -i "s/# MAC_ARM_SHA/sha256 \"$SHA_MACOS_ARM\" # MAC_ARM_SHA/" Formula/vanity_crypto.rb
-          sed -i "s/# MAC_INTEL_SHA/sha256 \"$SHA_MACOS_INTEL\" # MAC_INTEL_SHA/" Formula/vanity_crypto.rb
-          sed -i "s/# LINUX_SHA/sha256 \"$SHA_LINUX\" # LINUX_SHA/" Formula/vanity_crypto.rb
+          sed -i "s/.*# MAC_ARM_SHA.*/    sha256 \"$SHA_MACOS_ARM\" # MAC_ARM_SHA/" Formula/vanity_crypto.rb
+          sed -i "s/.*# MAC_INTEL_SHA.*/    sha256 \"$SHA_MACOS_INTEL\" # MAC_INTEL_SHA/" Formula/vanity_crypto.rb
+          sed -i "s/.*# LINUX_SHA.*/    sha256 \"$SHA_LINUX\" # LINUX_SHA/" Formula/vanity_crypto.rb
 
           # 5. Update Scoop Manifest
           sed -i "s/REPLACE_WITH_ACTUAL_SHA256_AFTER_RELEASE_BUILD/$SHA_WIN/" scoop/vanity_crypto.json
