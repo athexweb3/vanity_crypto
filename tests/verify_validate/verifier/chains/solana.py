@@ -32,6 +32,8 @@ def verify_solana_key(key_str):
     try:
         import base58
         import nacl.signing
+        # Silence unused import warning (dependency check)
+        _ = (base58, nacl.signing)
     except ImportError:
          print("[ERROR] Verification Skipped. Required libraries not found.")
          print("To verify Solana keys, install: pip install base58 pynacl")
