@@ -5,8 +5,8 @@
     "license": "MIT",
     "architecture": {
         "64bit": {
-            "url": "https://github.com/athexweb3/vanity_crypto/releases/download/v0.2.0/vc-windows-amd64.exe",
-            "hash": "891d09df20734e982643ca2c20f575956decdd8f7f8ca3338d23e3b4582b49ea"
+            "url": "https://github.com/athexweb3/v0.2.0/releases/download/v0.2.0/vc-windows-amd64.exe",
+            "hash": "5ac577b1db56b66f13af2d89bd78a55347e61119fb6ce1fab4847b6702e863af"
         }
     },
     "bin": [
@@ -19,7 +19,7 @@
     "autoupdate": {
         "architecture": {
             "64bit": {
-                "url": "https://github.com/athexweb3/vanity_crypto/releases/download/v$version/vc-windows-amd64.exe"
+                "url": "https://github.com/athexweb3/v0.2.0/releases/download/v0.2.0/vc-windows-amd64.exe"
             }
         }
     }
