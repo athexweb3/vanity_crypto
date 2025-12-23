@@ -1,8 +1,9 @@
 ---
 source: crates/cli/tests/integration.rs
+assertion_line: 18
 expression: text
 ---
-A high-performance, secure, and beautiful Crypto vanity address generator
+A high-performance, secure, and beautiful Ethereum vanity address generator
 
 Usage: vc [OPTIONS]
 

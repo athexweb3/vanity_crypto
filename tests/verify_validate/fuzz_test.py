@@ -9,14 +9,20 @@ import argparse
 # Append current directory to path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
-    from main import get_bitcoin_address, Account
+    from verifier.chains.bitcoin import get_bitcoin_address
+    from verifier.chains.ethereum import Account
+    from verifier.chains.solana import get_solana_address
 except ImportError as e:
-    print(f"[ERROR] Could not import 'main.py' verification logic: {e}")
+    print(f"[ERROR] Could not import verifier logic: {e}")
     sys.exit(1)
 
 def run_fuzz_test(count, chain, network, btc_type):
     print(f"\n[INFO] Starting Fuzz Test with {count} keys...")
-    print(f"       Chain: {chain}, Network: {network}, Type: {btc_type}")
+    print(f"       Chain: {chain}, Network: {network}", end="")
+    if chain == 'bitcoin':
+        print(f", Type: {btc_type}")
+    else:
+        print("")
     
     # Path to binary
     project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -90,7 +96,24 @@ def run_fuzz_test(count, chain, network, btc_type):
                     print(f"[FAIL] Mismatch at index {i}:")
                     print(f"   Rust Addr: {rust_addr}")
                     print(f"   Py Addr:   {expected_addr}")
+                    print(f"   Py Addr:   {expected_addr}")
                     print(f"   All Derivations: {matches}")
+                    print("")
+            
+            elif chain == 'solana':
+                py_addr = get_solana_address(rust_pk)
+                if not py_addr:
+                    print(f"FAIL Invalid Solana Key: {rust_pk}")
+                    failed += 1
+                    continue
+                
+                if py_addr == rust_addr:
+                    passed += 1
+                else:
+                    failed += 1
+                    print(f"[FAIL] Mismatch at index {i}:")
+                    print(f"   Rust Addr: {rust_addr}")
+                    print(f"   Py Addr:   {py_addr}")
                     print("")
 
         except Exception as e:
@@ -112,7 +135,7 @@ def run_fuzz_test(count, chain, network, btc_type):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Vanity Crypto Fuzz Test")
     parser.add_argument("--count", type=int, default=100, help="Number of keys to generate")
-    parser.add_argument("--chain", type=str, default="ethereum", choices=["ethereum", "bitcoin"])
+    parser.add_argument("--chain", type=str, default="ethereum", choices=["ethereum", "bitcoin", "solana"])
     parser.add_argument("--network", type=str, default="mainnet", choices=["mainnet", "testnet", "regtest"])
     parser.add_argument("--btc-type", type=str, default="segwit", choices=["legacy", "segwit", "taproot"])
     
