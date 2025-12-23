@@ -24,7 +24,7 @@ env:
 
 jobs:
   test-macos:
-    name: Test
+    name: Test macOS
     runs-on: macos-latest
 
     steps:

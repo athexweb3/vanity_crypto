@@ -24,7 +24,7 @@ env:
 
 jobs:
   test-linux:
-    name: Test
+    name: Test Linux
     runs-on: ubuntu-latest
 
     steps:

@@ -24,7 +24,7 @@ env:
 
 jobs:
   test-windows:
-    name: Test
+    name: Test Windows
     runs-on: windows-latest
 
     steps:
