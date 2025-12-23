@@ -40,10 +40,18 @@ jobs:
 
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
-      - name: Commit and Push Changes
+      - name: Create Release Branch and PR
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
+          VERSION="${{ env.VERSION }}"
+          BRANCH_NAME="release/v$VERSION"
+          
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          echo "Creating branch $BRANCH_NAME..."
+          git checkout -b "$BRANCH_NAME"
           
           git add package.json Cargo.toml Formula/vanity_crypto.rb scoop/vanity_crypto.json
           
@@ -52,17 +60,16 @@ jobs:
           else
             echo "Committing version bump..."
             git commit -m "chore: release v$VERSION"
-            git push origin HEAD
+            
+            echo "Pushing branch..."
+            git push origin "$BRANCH_NAME"
+            
+            echo "Creating Pull Request..."
+            gh pr create \
+              --title "chore: release v$VERSION" \
+              --body "Automated release preparation for v$VERSION. Merging this PR will trigger the auto-tag workflow and build the release." \
+              --base main \
+              --head "$BRANCH_NAME"
+              
+            echo "✅ Release PR created! Merge it to trigger the release."
           fi
-
-      - name: Tag and Push Release
-        run: |
-          TAG="v$VERSION"
-          if git rev-parse "$TAG" >/dev/null 2>&1; then
-            echo "Tag $TAG already exists."
-          else
-            echo "Tagging release $TAG..."
-            git tag -a "$TAG" -m "Manual Release $TAG"
-            git push origin "$TAG"
-          fi
-          echo "Release $TAG triggered!"
