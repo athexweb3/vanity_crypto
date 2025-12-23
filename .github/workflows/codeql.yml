@@ -1,0 +1,102 @@
+name: "CodeQL"
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  schedule:
+    - cron: '21 10 * * 5'
+
+jobs:
+  check-changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      languages: ${{ steps.set-matrix.outputs.languages }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36
+        id: filter
+        with:
+          filters: |
+            rust:
+              - 'crates/**'
+              - 'Cargo.toml'
+              - 'Cargo.lock'
+            python:
+              - 'tests/verify_validate/**'
+            javascript:
+              - 'scripts/**'
+              - 'package.json'
+
+      - id: set-matrix
+        run: |
+          # Build a JSON array of languages based on changes
+          LANGS="[]"
+          
+          if [ "${{ steps.filter.outputs.rust }}" == "true" ]; then
+            LANGS=$(echo $LANGS | jq -c '. + ["rust"]')
+          fi
+          
+          if [ "${{ steps.filter.outputs.python }}" == "true" ]; then
+            LANGS=$(echo $LANGS | jq -c '. + ["python"]')
+          fi
+          
+          if [ "${{ steps.filter.outputs.javascript }}" == "true" ]; then
+            # CodeQL uses 'javascript-typescript' for JS
+            LANGS=$(echo $LANGS | jq -c '. + ["javascript-typescript"]')
+          fi
+          
+          # If this is a scheduled run, analyze everything (fallback)
+          if [ "${{ github.event_name }}" == "schedule" ]; then
+             LANGS='["rust", "python", "javascript-typescript"]'
+          fi
+
+          # Handle empty case (if docs only) -> Pass empty JSON to avoid matrix error
+          # Actually, empty matrix usually skips job.
+          
+          echo "languages=$LANGS" >> $GITHUB_OUTPUT
+          echo "Detected languages: $LANGS"
+
+  analyze:
+    needs: check-changes
+    if: ${{ needs.check-changes.outputs.languages != '[]' }}
+    name: Analyze
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ${{ fromJSON(needs.check-changes.outputs.languages) }}
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # Initialize CodeQL tools for the scanned language
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: ${{ matrix.language }}
+        # If you have custom config, point to it, else default
+
+    # Autobuild attempts to build any compiled languages  (C/C++, C#, Go, Java, Swift)
+    # For Rust, Autobuild often works, but manual build might be needed if complex.
+    # Python/JS are interpreted.
+    - name: Autobuild
+      uses: github/codeql-action/autobuild@v3
+
+    # ℹ️ Command-line programs to run using the OS shell.
+    # 📚 See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:${{ matrix.language }}"
