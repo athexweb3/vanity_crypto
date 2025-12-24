@@ -24,12 +24,16 @@ impl CosmosVanityGenerator {
         }
     }
 
+    // ... (imports remain same)
+
     pub fn search(&self, found_flag: Option<Arc<AtomicU64>>) -> (PrivateKey, Address) {
         let mut csprng = OsRng;
         let p_prefix = &self.prefix;
         let p_suffix = &self.suffix;
         let p_case = self.case_sensitive;
-        let hrp = Hrp::parse(&self.hrp).unwrap_or(Hrp::parse("cosmos").unwrap());
+        // Code Review: Fallback to "cosmos" is active, but we should potentially warn/error in new() if invalid.
+        // For search loop, we must have a valid HRP.
+        let hrp = Hrp::parse(&self.hrp).unwrap_or(Hrp::parse("cosmos").expect("valid default"));
 
         loop {
             if let Some(ref attempts) = found_flag {
@@ -50,60 +54,36 @@ impl CosmosVanityGenerator {
             let address_bytes = ripemd_hasher.finalize();
 
             // 4. Encode Bech32
-            // Note: bech32 crate automatically handles 8-bit to 5-bit conversion in `encode`
-            let address_str = bech32::encode::<Bech32>(hrp, &address_bytes).unwrap();
+            // Code Review: Handle potential encoding errors gracefully or expect success for valid inputs.
+            let address_str =
+                bech32::encode::<Bech32>(hrp, &address_bytes).expect("bech32 encoding failed");
 
             // 5. Check Match
             let mut is_match = true;
 
-            // TODO check data part only optimization?
-            // For now simple string matching on the full address "cosmos1..."
-
             if !p_prefix.is_empty() {
-                // Address format: hrp + "1" + data
-                // User prefix search usually implies searching *after* the "1" separator?
-                // Or just standard string starts_with?
-                // Standard convention: user types "alice", expects "cosmos1alice..."
-                // So we check if address_str starts with (hrp + "1" + prefix) if prefix doesn't contain "1"
-
-                // Let's stick to standard string matching logic for now:
-                // If user wants "cosmos1test...", they pass prefix "test" or "cosmos1test"?
-                // Usually tools allow specifying the part AFTER the separator.
-                // But our generic interface takes a "prefix".
-                // If I type prefix "A", do I match "cosmos1A..."? Yes.
-
-                // But Bech32 data part is base32 (qn... or similar charset).
-                // "A" might not be valid if it's not lowercase (Bech32 checks case).
-                // Bech32 is usually all lowercase or all uppercase.
-
-                let check_str = if p_case {
-                    address_str.clone()
-                } else {
-                    address_str.to_lowercase()
-                };
-
-                // Helper: construct target prefix
-                // If user input "foo", we look for "cosmos1foo..."
+                // Simplified Logic from Code Review
                 let target_start = format!("{}1{}", self.hrp, p_prefix);
 
-                // If case sensitive, exact match.
-                // But wait, bech32 is case insensitive in spec (canonical is lowercase).
-                // We always generate lowercase string from encode().
+                let matches = if p_case {
+                    address_str.starts_with(&target_start)
+                } else {
+                    address_str.starts_with(&target_start.to_lowercase())
+                };
 
-                if !check_str.starts_with(&target_start.to_lowercase()) {
+                if !matches {
                     is_match = false;
                 }
             }
 
             if is_match && !p_suffix.is_empty() {
-                // Suffix matching is simpler, just ends_with
-                let check_str = if p_case {
-                    address_str.clone()
+                let matches = if p_case {
+                    address_str.ends_with(p_suffix)
                 } else {
-                    address_str.to_lowercase()
+                    address_str.ends_with(&p_suffix.to_lowercase())
                 };
 
-                if !check_str.ends_with(p_suffix) {
+                if !matches {
                     is_match = false;
                 }
             }

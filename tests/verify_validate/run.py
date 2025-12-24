@@ -38,9 +38,7 @@ def main():
         return
     elif target_chain == "bitcoin":
         verify_bitcoin_key(input_key)
-    elif target_chain == "bitcoin":
-        verify_bitcoin_key(input_key)
-        return
+
     elif target_chain == "cosmos":
         verify_cosmos_key(input_key)
         return
