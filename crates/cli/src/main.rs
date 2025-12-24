@@ -4,7 +4,10 @@ use std::sync::Arc;
 use std::{sync::mpsc, thread};
 use vanity_core::VanityGenerator;
 use vanity_ui::{
-    app::{BitcoinType as UiBtcType, Chain as UiChain, Network as UiNetwork},
+    app::{
+        BitcoinType as UiBtcType, Chain as UiChain, Network as UiNetwork,
+        TonVersion as UiTonVersion,
+    },
     run_tui,
 };
 use vanity_wallet::{
@@ -16,6 +19,7 @@ enum Chain {
     Ethereum,
     Bitcoin,
     Solana,
+    Ton,
 }
 
 #[derive(Debug, Clone, ValueEnum)]
@@ -32,12 +36,37 @@ enum BtcType {
     Taproot,
 }
 
+#[derive(Debug, Clone, ValueEnum)]
+enum TonVersion {
+    V4R2,
+    V5R1,
+}
+
+impl From<TonVersion> for vanity_core::TonWalletVersion {
+    fn from(v: TonVersion) -> Self {
+        match v {
+            TonVersion::V4R2 => vanity_core::TonWalletVersion::V4R2,
+            TonVersion::V5R1 => vanity_core::TonWalletVersion::V5R1,
+        }
+    }
+}
+
+impl From<TonVersion> for UiTonVersion {
+    fn from(v: TonVersion) -> Self {
+        match v {
+            TonVersion::V4R2 => UiTonVersion::V4R2,
+            TonVersion::V5R1 => UiTonVersion::V5R1,
+        }
+    }
+}
+
 impl From<Chain> for UiChain {
     fn from(c: Chain) -> Self {
         match c {
             Chain::Ethereum => UiChain::Ethereum,
             Chain::Bitcoin => UiChain::Bitcoin,
             Chain::Solana => UiChain::Solana,
+            Chain::Ton => UiChain::Ton,
         }
     }
 }
@@ -112,6 +141,10 @@ struct Args {
     #[arg(long, value_enum, default_value_t = BtcType::Segwit)]
     btc_type: BtcType,
 
+    /// TON wallet version (only used if chain is ton)
+    #[arg(long, value_enum, default_value_t = TonVersion::V4R2)]
+    ton_version: TonVersion,
+
     /// Prefix must start with this string (e.g., "0xDEAD")
     #[arg(short, long, default_value = "")]
     prefix: String,
@@ -168,7 +201,8 @@ fn main() {
                                 p_case: bool,
                                 p_chain: UiChain,
                                 p_network: UiNetwork,
-                                p_btc_type: UiBtcType| {
+                                p_btc_type: UiBtcType,
+                                p_ton_version: UiTonVersion| {
         let p_prefix = if let Some(stripped) = p_prefix.strip_prefix("0x") {
             stripped.to_string()
         } else {
@@ -177,6 +211,7 @@ fn main() {
 
         let my_attempts = attempts_clone.clone();
         let my_tx = tx.clone();
+        // capture cli_ton_version only needed if not passed, but we pass it now.
 
         thread::spawn(move || {
             let (pk, addr) = match p_chain {
@@ -195,6 +230,18 @@ fn main() {
                 }
                 UiChain::Solana => {
                     let gen = SolanaVanityGenerator::new(&p_prefix, &p_suffix, p_case);
+                    gen.search(Some(my_attempts))
+                }
+                UiChain::Ton => {
+                    // Convert UiTonVersion to CoreVersion manually
+                    let core_version: vanity_core::TonWalletVersion = p_ton_version.into();
+
+                    let gen = vanity_wallet::TonVanityGenerator::new(
+                        &p_prefix,
+                        &p_suffix,
+                        p_case,
+                        core_version,
+                    );
                     gen.search(Some(my_attempts))
                 }
             };
@@ -218,6 +265,7 @@ fn main() {
         let ui_chain: UiChain = cli_chain.into();
         let ui_network: UiNetwork = cli_network.into();
         let ui_btc_type: UiBtcType = cli_btc_type.into();
+        let ui_ton_version: UiTonVersion = args.ton_version.clone().into();
 
         // Spawn search thread directly
         on_search_start(
@@ -227,13 +275,14 @@ fn main() {
             ui_chain,
             ui_network,
             ui_btc_type,
+            ui_ton_version,
         );
 
         // Simple loop waiting for result
         loop {
             if let Ok(res) = rx.try_recv() {
                 println!("\nAddress: {}\nPrivate Key: {}", res.0, res.1);
-                run_verification(&res.1);
+                run_verification(&res.1, &format!("{:?}", args.chain).to_lowercase());
                 break;
             }
             std::thread::sleep(std::time::Duration::from_millis(100));
@@ -256,6 +305,7 @@ fn main() {
         let initial_ui_chain: UiChain = cli_chain.into();
         let initial_ui_network: UiNetwork = cli_network.into();
         let initial_ui_btc_type: UiBtcType = cli_btc_type.into();
+        let initial_ui_ton_version: UiTonVersion = args.ton_version.clone().into();
 
         if start_immediately {
             on_search_start(
@@ -265,6 +315,7 @@ fn main() {
                 initial_ui_chain,
                 initial_ui_network,
                 initial_ui_btc_type,
+                initial_ui_ton_version,
             );
         }
 
@@ -278,6 +329,7 @@ fn main() {
             initial_ui_chain,
             initial_ui_network,
             initial_ui_btc_type,
+            initial_ui_ton_version,
             on_search_start,
         ) {
             Ok(res) => res,
@@ -287,13 +339,14 @@ fn main() {
             }
         };
 
-        if let Some((_, pk)) = result {
-            run_verification(&pk);
+        if let Some((_, pk, chain)) = result {
+            // TUI now returns the selected chain, so we use it for verification.
+            run_verification(&pk, &format!("{:?}", chain).to_lowercase());
         }
     }
 }
 
-fn run_verification(pk: &str) {
+fn run_verification(pk: &str, chain: &str) {
     // Check if python3 is available
     use std::process::Command;
 
@@ -318,7 +371,11 @@ fn run_verification(pk: &str) {
         system_python
     };
 
-    let output = Command::new(python_cmd).arg(script_path).arg(pk).output();
+    let output = Command::new(python_cmd)
+        .arg(script_path)
+        .arg(pk)
+        .arg(chain)
+        .output();
 
     match output {
         Ok(out) => {
@@ -347,6 +404,12 @@ fn run_batch_generation(count: u64, args: &Args) {
             Box::new(BitcoinVanityGenerator::new("", "", false, net, t))
         }
         Chain::Solana => Box::new(SolanaVanityGenerator::new("", "", false)), // No prefix/suffix for batch random
+        Chain::Ton => Box::new(vanity_wallet::TonVanityGenerator::new(
+            "",
+            "",
+            false,
+            args.ton_version.clone().into(),
+        )),
     };
 
     for _ in 0..count {

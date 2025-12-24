@@ -7,15 +7,15 @@ pub enum Chain {
     Ethereum,
     Bitcoin,
     Solana,
+    Ton,
 }
 
 impl Chain {
+    pub const ALL: &'static [Chain] = &[Chain::Ethereum, Chain::Bitcoin, Chain::Solana, Chain::Ton];
+
     pub fn next(&self) -> Self {
-        match self {
-            Chain::Ethereum => Chain::Bitcoin,
-            Chain::Bitcoin => Chain::Solana,
-            Chain::Solana => Chain::Ethereum,
-        }
+        let pos = Self::ALL.iter().position(|&c| c == *self).unwrap_or(0);
+        Self::ALL[(pos + 1) % Self::ALL.len()]
     }
 }
 
@@ -32,6 +32,30 @@ impl BitcoinType {
             BitcoinType::Legacy => BitcoinType::SegWit,
             BitcoinType::SegWit => BitcoinType::Taproot,
             BitcoinType::Taproot => BitcoinType::Legacy,
+        }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum TonVersion {
+    V4R2,
+    V5R1,
+}
+
+impl TonVersion {
+    pub fn next(&self) -> Self {
+        match self {
+            TonVersion::V4R2 => TonVersion::V5R1,
+            TonVersion::V5R1 => TonVersion::V4R2,
+        }
+    }
+}
+
+impl From<TonVersion> for vanity_core::TonWalletVersion {
+    fn from(v: TonVersion) -> Self {
+        match v {
+            TonVersion::V4R2 => vanity_core::TonWalletVersion::V4R2,
+            TonVersion::V5R1 => vanity_core::TonWalletVersion::V5R1,
         }
     }
 }
@@ -72,12 +96,13 @@ pub struct App {
     pub chain: Chain,
     pub network: Network,
     pub btc_type: BitcoinType,
+    pub ton_version: TonVersion,
     pub prefix: String,
     pub suffix: String,
     pub case_sensitive: bool,
 
     // Form Focus
-    // 0: Chain, 1: Network, 2: BtcType, 3: Prefix, 4: Suffix, 5: Case Sensitive, 6: Start Button
+    // 0: Chain, 1: Network, 2: Type/Version (BTC/TON), 3: Prefix, 4: Suffix, 5: Case Sensitive, 6: Start Button
     pub input_focus_index: usize,
 }
 
@@ -92,6 +117,7 @@ impl App {
         initial_chain: Chain,
         initial_network: Network,
         initial_btc_type: BitcoinType,
+        initial_ton_version: TonVersion,
     ) -> Self {
         let state = if start_immediately {
             AppState::Searching
@@ -116,6 +142,7 @@ impl App {
             chain: initial_chain,
             network: initial_network,
             btc_type: initial_btc_type,
+            ton_version: initial_ton_version,
             prefix,
             suffix,
             case_sensitive,
@@ -140,11 +167,17 @@ impl App {
     pub fn next_focus(&mut self) {
         self.input_focus_index = (self.input_focus_index + 1) % 7;
 
-        // Logic to skip Network(1) and BtcType(2) if Chain is Ethereum
-        if (self.chain == Chain::Ethereum || self.chain == Chain::Solana)
-            && (self.input_focus_index == 1 || self.input_focus_index == 2)
-        {
-            self.input_focus_index = 3; // Skip to Prefix
+        // Logic to skip Network(1) and Type(2) depending on Chain
+        // Ethereum/Solana: Skip 1 and 2
+        // Ton: Skip 1 (Network) but keep 2 (Version)
+        // Bitcoin: Keep 1 and 2
+
+        if self.chain == Chain::Ethereum || self.chain == Chain::Solana {
+            if self.input_focus_index == 1 || self.input_focus_index == 2 {
+                self.input_focus_index = 3;
+            }
+        } else if self.chain == Chain::Ton && self.input_focus_index == 1 {
+            self.input_focus_index = 2; // Skip Network, go to Version
         }
     }
 
@@ -155,11 +188,13 @@ impl App {
             self.input_focus_index -= 1;
         }
 
-        // Logic to skip Network(1) and BtcType(2) if Chain is Ethereum
-        if (self.chain == Chain::Ethereum || self.chain == Chain::Solana)
-            && (self.input_focus_index == 1 || self.input_focus_index == 2)
-        {
-            self.input_focus_index = 0; // Skip back to Chain
+        // Logic to skip Network(1) and Type(2) depending on Chain
+        if self.chain == Chain::Ethereum || self.chain == Chain::Solana {
+            if self.input_focus_index == 1 || self.input_focus_index == 2 {
+                self.input_focus_index = 0; // Skip back to Chain
+            }
+        } else if self.chain == Chain::Ton && self.input_focus_index == 1 {
+            self.input_focus_index = 0; // Skip back to Chain (skipping Network)
         }
     }
 
@@ -187,6 +222,9 @@ impl App {
                 if c.eq_ignore_ascii_case(&'s') {
                     self.chain = Chain::Solana;
                 }
+                if c.eq_ignore_ascii_case(&'t') {
+                    self.chain = Chain::Ton;
+                }
             }
             1 => {
                 // Network
@@ -201,15 +239,24 @@ impl App {
                 }
             }
             2 => {
-                // BtcType
-                if c.eq_ignore_ascii_case(&'l') {
-                    self.btc_type = BitcoinType::Legacy;
-                }
-                if c.eq_ignore_ascii_case(&'s') {
-                    self.btc_type = BitcoinType::SegWit;
-                }
-                if c.eq_ignore_ascii_case(&'p') {
-                    self.btc_type = BitcoinType::Taproot;
+                // Type / Version
+                if self.chain == Chain::Bitcoin {
+                    if c.eq_ignore_ascii_case(&'l') {
+                        self.btc_type = BitcoinType::Legacy;
+                    }
+                    if c.eq_ignore_ascii_case(&'s') {
+                        self.btc_type = BitcoinType::SegWit;
+                    }
+                    if c.eq_ignore_ascii_case(&'p') {
+                        self.btc_type = BitcoinType::Taproot;
+                    }
+                } else if self.chain == Chain::Ton {
+                    if c == '4' {
+                        self.ton_version = TonVersion::V4R2;
+                    }
+                    if c == '5' {
+                        self.ton_version = TonVersion::V5R1;
+                    }
                 }
             }
             5 => {
@@ -242,7 +289,11 @@ impl App {
         } else if self.input_focus_index == 1 {
             self.network = self.network.next();
         } else if self.input_focus_index == 2 {
-            self.btc_type = self.btc_type.next();
+            if self.chain == Chain::Bitcoin {
+                self.btc_type = self.btc_type.next();
+            } else if self.chain == Chain::Ton {
+                self.ton_version = self.ton_version.next();
+            }
         } else if self.input_focus_index == 5 {
             self.case_sensitive = !self.case_sensitive;
         }

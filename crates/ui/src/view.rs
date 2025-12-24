@@ -167,14 +167,17 @@ fn render_config(f: &mut Frame, app: &mut App, area: ratatui::layout::Rect) {
     // 2. Type
     let type_str = if app.chain == crate::app::Chain::Bitcoin {
         format!("{:?}", app.btc_type)
+    } else if app.chain == crate::app::Chain::Ton {
+        format!("{:?}", app.ton_version)
     } else {
         "N/A".to_string()
     };
-    let type_style = if app.chain == crate::app::Chain::Bitcoin {
-        style_for(2)
-    } else {
-        Style::default().fg(Color::DarkGray)
-    };
+    let type_style =
+        if app.chain == crate::app::Chain::Bitcoin || app.chain == crate::app::Chain::Ton {
+            style_for(2)
+        } else {
+            Style::default().fg(Color::DarkGray)
+        };
 
     let type_text = vec![
         Span::styled(cursor_symbol(2), type_style),
@@ -183,6 +186,9 @@ fn render_config(f: &mut Frame, app: &mut App, area: ratatui::layout::Rect) {
             format!("< {} >", type_str),
             if app.input_focus_index == 2 {
                 Style::default().fg(Color::Cyan)
+            } else if app.chain == crate::app::Chain::Bitcoin || app.chain == crate::app::Chain::Ton
+            {
+                Style::default()
             } else {
                 Style::default().fg(Color::DarkGray)
             },
