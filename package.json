@@ -1,6 +1,6 @@
 {
   "name": "vanity_crypto",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "High-performance, secure, and beautiful Crypto vanity address generator",
   "bin": {
     "vc": "npm/bin/vc"
