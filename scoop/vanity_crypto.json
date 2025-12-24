@@ -1,26 +1,26 @@
 {
-    "version": "0.3.0",
-    "description": "High-performance Ethereum vanity address generator",
-    "homepage": "https://github.com/athexweb3/vanity_crypto",
-    "license": "MIT",
-    "architecture": {
-        "64bit": {
-            "url": "https://github.com/athexweb3/v0.2.0/releases/download/v0.2.0/vc-windows-amd64.exe",
-            "hash": "3f382b9099990568a7d7346bb5605c7041d9a38b1ffa4fdcfa699b32b099bece"
-        }
-    },
-    "bin": [
-        [
-            "vc-windows-amd64.exe",
-            "vc"
-        ]
-    ],
-    "checkver": "github",
-    "autoupdate": {
-        "architecture": {
-            "64bit": {
-                "url": "https://github.com/athexweb3/v0.2.0/releases/download/v0.2.0/vc-windows-amd64.exe"
-            }
-        }
+  "version": "0.3.0",
+  "description": "High-performance Ethereum vanity address generator",
+  "homepage": "https://github.com/athexweb3/vanity_crypto",
+  "license": "MIT",
+  "architecture": {
+    "64bit": {
+      "url": "https://github.com/athexweb3/v0.2.0/releases/download/v0.2.0/vc-windows-amd64.exe",
+      "hash": "3f382b9099990568a7d7346bb5605c7041d9a38b1ffa4fdcfa699b32b099bece"
     }
+  },
+  "bin": [
+    [
+      "vc-windows-amd64.exe",
+      "vc"
+    ]
+  ],
+  "checkver": "github",
+  "autoupdate": {
+    "architecture": {
+      "64bit": {
+        "url": "https://github.com/athexweb3/v0.2.0/releases/download/v0.2.0/vc-windows-amd64.exe"
+      }
+    }
+  }
 }
