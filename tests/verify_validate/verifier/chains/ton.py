@@ -1,6 +1,5 @@
 try:
     from tonsdk.contract.wallet import WalletV4ContractR2
-    from tonsdk.utils import Address
     from nacl.signing import SigningKey
     import hashlib
     import base64
@@ -106,18 +105,6 @@ def get_ton_address(seed_hex):
         hasher.update(code_hash_v5r1)
         hasher.update(data_hash)
         state_init_hash = hasher.digest()
-
-        def encode_addr(hash_bytes, tag):
-            payload = bytearray()
-            payload.append(tag)
-            payload.append(0x00) 
-            payload.extend(hash_bytes)
-            
-            crc = crc16(payload)
-            payload.extend(crc)
-            
-            encoded = base64.urlsafe_b64encode(payload).decode('utf-8')
-            return encoded 
 
         results['v5r1_uq'] = encode_addr(state_init_hash, 0x51)
         results['v5r1_eq'] = encode_addr(state_init_hash, 0x11)

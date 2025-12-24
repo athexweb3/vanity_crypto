@@ -73,38 +73,8 @@ impl TonVanityGenerator {
             let (signing_key, verifying_key) = generate_ed25519(&mut csprng);
             let pubkey_bytes = verifying_key.as_bytes();
 
-            // 2. Compute Data Hash
-            let mut hasher = Sha256::new();
-            if self.version == TonWalletVersion::V5R1 {
-                hasher.update(DATA_HEAD_V5R1);
-                // Byte 8: Last bit of WalletID (1) + 7 bits of PubKey
-                hasher.update([0x80 | (pubkey_bytes[0] >> 1)]);
-
-                // Middle bytes: Shifted PubKey
-                for i in 0..31 {
-                    hasher.update([(pubkey_bytes[i] << 7) | (pubkey_bytes[i + 1] >> 1)]);
-                }
-
-                // Last byte: Last bit of PubKey + Padding (0x20)
-                hasher.update([(pubkey_bytes[31] << 7) | 0x20]);
-            } else {
-                hasher.update(DATA_HEAD);
-                hasher.update(pubkey_bytes);
-                hasher.update(DATA_TAIL);
-            }
-            let data_hash = hasher.finalize();
-
-            // 3. Compute StateInit Hash
-            let mut hasher = Sha256::new();
-            if self.version == TonWalletVersion::V5R1 {
-                hasher.update(STATE_INIT_HEAD_V5R1);
-                hasher.update(CODE_HASH_V5R1);
-            } else {
-                hasher.update(STATE_INIT_HEAD);
-                hasher.update(CODE_HASH_V4R2);
-            }
-            hasher.update(data_hash);
-            let state_init_hash = hasher.finalize();
+            // 2 & 3. Compute StateInit Hash (via helper)
+            let state_init_hash = self.compute_state_init_hash(pubkey_bytes);
 
             // 4. Encode Address (Base64 URL Safe) to check match
             let tag = if !p_prefix.is_empty() && p_prefix.starts_with('E') {
@@ -144,10 +114,39 @@ impl TonVanityGenerator {
             if is_match {
                 // Return result
                 let secret_bytes = signing_key.to_bytes();
-                // Store as 64-byte keypair buffer (standard Ed25519 persistence)
+                // Store as 32-byte secret seed (standard Ed25519 persistence)
                 return (PrivateKey::Ton(secret_bytes), Address::Ton(address_str));
             }
         }
+    }
+    fn compute_state_init_hash(&self, pubkey_bytes: &[u8]) -> [u8; 32] {
+        // 2. Compute Data Hash
+        let mut hasher = Sha256::new();
+        if self.version == TonWalletVersion::V5R1 {
+            hasher.update(DATA_HEAD_V5R1);
+            hasher.update([0x80 | (pubkey_bytes[0] >> 1)]);
+            for i in 0..31 {
+                hasher.update([(pubkey_bytes[i] << 7) | (pubkey_bytes[i + 1] >> 1)]);
+            }
+            hasher.update([(pubkey_bytes[31] << 7) | 0x20]);
+        } else {
+            hasher.update(DATA_HEAD);
+            hasher.update(pubkey_bytes);
+            hasher.update(DATA_TAIL);
+        }
+        let data_hash = hasher.finalize();
+
+        // 3. Compute StateInit Hash
+        let mut hasher = Sha256::new();
+        if self.version == TonWalletVersion::V5R1 {
+            hasher.update(STATE_INIT_HEAD_V5R1);
+            hasher.update(CODE_HASH_V5R1);
+        } else {
+            hasher.update(STATE_INIT_HEAD);
+            hasher.update(CODE_HASH_V4R2);
+        }
+        hasher.update(data_hash);
+        hasher.finalize().into()
     }
 }
 
@@ -180,31 +179,7 @@ impl VanityGenerator for TonVanityGenerator {
         let (signing_key, verifying_key) = generate_ed25519(&mut csprng);
         let pubkey_bytes = verifying_key.as_bytes();
 
-        let mut hasher = Sha256::new();
-        if self.version == TonWalletVersion::V5R1 {
-            hasher.update(DATA_HEAD_V5R1);
-            hasher.update([0x80 | (pubkey_bytes[0] >> 1)]);
-            for i in 0..31 {
-                hasher.update([(pubkey_bytes[i] << 7) | (pubkey_bytes[i + 1] >> 1)]);
-            }
-            hasher.update([(pubkey_bytes[31] << 7) | 0x20]);
-        } else {
-            hasher.update(DATA_HEAD);
-            hasher.update(pubkey_bytes);
-            hasher.update(DATA_TAIL);
-        }
-        let data_hash = hasher.finalize();
-
-        let mut hasher = Sha256::new();
-        if self.version == TonWalletVersion::V5R1 {
-            hasher.update(STATE_INIT_HEAD_V5R1);
-            hasher.update(CODE_HASH_V5R1);
-        } else {
-            hasher.update(STATE_INIT_HEAD);
-            hasher.update(CODE_HASH_V4R2);
-        }
-        hasher.update(data_hash);
-        let state_init_hash = hasher.finalize();
+        let state_init_hash = self.compute_state_init_hash(pubkey_bytes);
 
         let address = encode_ton_address(&state_init_hash, 0x51);
         let secret_bytes = signing_key.to_bytes();
