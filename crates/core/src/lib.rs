@@ -5,4 +5,4 @@ pub mod types;
 
 pub use error::CoreError;
 pub use traits::VanityGenerator;
-pub use types::{Address, PrivateKey};
+pub use types::{Address, PrivateKey, TonWalletVersion};

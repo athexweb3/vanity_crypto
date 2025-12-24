@@ -34,6 +34,11 @@ The library strictly adheres to the following standards:
 *   **[Ed25519](https://ed25519.cr.yp.to/)**: High-speed Edwards-curve Digital Signature Algorithm.
 *   **[Base58](https://learn.bybit.com/blockchain/what-is-base58/)**: Standard Solana address encoding.
 
+### TON (The Open Network)
+*   **[V4R2](https://ton.org/docs)**: Standard high-performance wallet contract (Wallet ID `0x29a9a317`).
+*   **[V5R1](https://docs.ton.org/v3/guidelines/smart-contracts/wallet-v5)**: Latest W5 standard (Wallet ID `0x7fffff11`), optimized for gasless operations.
+*   **Smart Addresses**: Generates non-bounceable (UQ) addresses by default, and automatically switches to bounceable (EQ) if the prefix starts with `E`.
+
 ## Architecture
 
 The project employs a specific **Verify-after-Generate** architecture to eliminate single points of failure in the cryptographic logic.
@@ -42,7 +47,7 @@ The project employs a specific **Verify-after-Generate** architecture to elimina
     Using the `rand::OsRng` system entropy source, a 256-bit private key is generated. The corresponding public key and address are derived via RustCrypto or libsecp256k1. This process is parallelized across all logical CPU cores using a work-stealing scheduler (`rayon`).
 
 2.  **Cross-Verification (Python)**:
-    Upon identifying a candidate address matching the user's constraints, the key material is passed to an isolated subprocess. This process invokes reference Python implementations (`eth_account` for Ethereum, `base58`/`bech32` for Bitcoin) to independently re-derive the address from the private key.
+    Upon identifying a candidate address matching the user's constraints, the key material is passed to an isolated subprocess. This process invokes reference Python implementations (`eth_account` for Ethereum, `base58`/`bech32` for Bitcoin, manual derivation for TON) to independently re-derive the address from the private key.
 
 3.  **Validation**:
     The result is presented to the user **if and only if** the Rust-derived address and the Python-derived address are bitwise identical.
@@ -112,13 +117,20 @@ vc --chain bitcoin --btc-type taproot --prefix bc1p
 
 # Solana
 vc --chain solana --prefix abc
+
+# TON (V4R2)
+vc --chain ton --ton-version v4r2 --prefix EQA
+
+# TON (V5R1)
+vc --chain ton --ton-version v5r1 --prefix UQ
 ```
 
 | Argument | Description |
 | :--- | :--- |
-| `--chain <ethereum\|bitcoin\|solana>` | Select the blockchain network (Default: ethereum). |
+| `--chain <ethereum\|bitcoin\|solana\|ton>` | Select the blockchain network (Default: ethereum). |
 | `--prefix <STRING>` | The case-insensitive string to search for. |
 | `--btc-type <legacy\|segwit\|taproot>` | **[Bitcoin]** The address type to generate. |
+| `--ton-version <v4r2\|v5r1>` | **[TON]** The wallet contract version (Default: v4r2). |
 | `--case-sensitive` | Strictly enforce casing (e.g. `DeaD` vs `dead`). |
 | `--threads <N>` | Override thread count (Default: logical core count). |
 | `--no-tui` | Disable the TUI and output only the final result JSON. |
@@ -141,6 +153,10 @@ python3 tests/verify_validate/fuzz_test.py --chain bitcoin --btc-type legacy
 
 # Audit Bitcoin (Taproot/Schnorr)
 python3 tests/verify_validate/fuzz_test.py --chain bitcoin --btc-type taproot
+
+# Audit TON (V4R2 & V5R1)
+python3 tests/verify_validate/fuzz_test.py --chain ton --ton-version v4r2
+python3 tests/verify_validate/fuzz_test.py --chain ton --ton-version v5r1
 ```
 
 ## License

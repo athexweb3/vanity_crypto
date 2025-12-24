@@ -8,11 +8,13 @@ Usage: vc [OPTIONS]
 
 Options:
       --chain <CHAIN>
-          Blockchain to generate address for [default: ethereum] [possible values: ethereum, bitcoin, solana]
+          Blockchain to generate address for [default: ethereum] [possible values: ethereum, bitcoin, solana, ton]
       --network <NETWORK>
           Network (mainnet, testnet, regtest) [default: mainnet] [possible values: mainnet, testnet, regtest]
       --btc-type <BTC_TYPE>
           Bitcoin address type (only used if chain is bitcoin) [default: segwit] [possible values: legacy, segwit, taproot]
+      --ton-version <TON_VERSION>
+          TON wallet version (only used if chain is ton) [default: v4r2] [possible values: v4r2, v5r1]
   -p, --prefix <PREFIX>
           Prefix must start with this string (e.g., "0xDEAD") [default: ]
   -s, --suffix <SUFFIX>

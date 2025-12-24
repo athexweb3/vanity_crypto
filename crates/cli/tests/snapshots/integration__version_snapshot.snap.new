@@ -1,6 +1,0 @@
----
-source: crates/cli/tests/integration.rs
-assertion_line: 33
-expression: text
----
-vanity_cli 0.3.0

@@ -3,3 +3,4 @@ eth-keys==0.7.0
 base58==2.1.1
 bech32==1.2.0
 ecdsa==0.19.1
+tonsdk==1.0.15

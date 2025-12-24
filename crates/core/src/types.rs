@@ -1,12 +1,30 @@
 use hex;
 use std::fmt;
 
+/// Supported TON Wallet Contract Versions
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+pub enum TonWalletVersion {
+    #[default]
+    V4R2,
+    V5R1,
+}
+
+impl fmt::Display for TonWalletVersion {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            TonWalletVersion::V4R2 => write!(f, "v4r2"),
+            TonWalletVersion::V5R1 => write!(f, "v5r1"),
+        }
+    }
+}
+
 /// Represents a blockchain address with chain-specific strict types.
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub enum Address {
     Ethereum([u8; 20]),
     Bitcoin(String), // Compliant with BIP-58 (Base58Check), BIP-173 (Bech32), or BIP-350 (Bech32m)
     Solana(String),  // Base58 encoded string
+    Ton(String),     // Base64 (URL safe) string
 }
 
 impl fmt::Debug for Address {
@@ -15,6 +33,7 @@ impl fmt::Debug for Address {
             Address::Ethereum(bytes) => write!(f, "Ethereum(0x{})", hex::encode(bytes)),
             Address::Bitcoin(addr) => write!(f, "Bitcoin({})", addr),
             Address::Solana(addr) => write!(f, "Solana({})", addr),
+            Address::Ton(addr) => write!(f, "Ton({})", addr),
         }
     }
 }
@@ -50,6 +69,7 @@ impl fmt::Display for Address {
                 write!(f, "{}", addr)
             }
             Address::Solana(addr) => write!(f, "{}", addr),
+            Address::Ton(addr) => write!(f, "{}", addr),
         }
     }
 }
@@ -62,6 +82,7 @@ impl Address {
             Address::Ethereum(bytes) => std::borrow::Cow::Owned(hex::encode(bytes)),
             Address::Bitcoin(s) => std::borrow::Cow::Borrowed(s),
             Address::Solana(s) => std::borrow::Cow::Borrowed(s),
+            Address::Ton(s) => std::borrow::Cow::Borrowed(s),
         }
     }
 }
@@ -74,6 +95,7 @@ pub enum PrivateKey {
     Ethereum([u8; 32]),
     Bitcoin(String),
     Solana([u8; 64]), // Solana keypairs are 64 bytes (32 private + 32 public)
+    Ton([u8; 32]),    // TON private keys are usually stored as 32-byte seeds for import
 }
 
 impl fmt::Debug for PrivateKey {
@@ -88,6 +110,7 @@ impl fmt::Display for PrivateKey {
             PrivateKey::Ethereum(bytes) => write!(f, "0x{}", hex::encode(bytes)),
             PrivateKey::Bitcoin(wif) => write!(f, "{}", wif),
             PrivateKey::Solana(bytes) => write!(f, "{}", bs58::encode(&bytes[..]).into_string()),
+            PrivateKey::Ton(bytes) => write!(f, "{}", hex::encode(bytes)),
         }
     }
 }
