@@ -1,5 +1,4 @@
-import os
-import codecs
+
 try:
     from tonsdk.contract.wallet import Wallets, WalletVersionEnum
     from tonsdk.boc import Cell
