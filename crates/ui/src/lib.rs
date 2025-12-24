@@ -1,4 +1,4 @@
-use crate::app::{App, BitcoinType, Chain};
+use crate::app::{App, BitcoinType, Chain, TonVersion};
 use crate::view::ui;
 use anyhow::Result;
 use crossterm::{
@@ -13,6 +13,7 @@ pub mod view;
 
 use std::sync::mpsc;
 use std::sync::Arc;
+use std::time::Instant;
 use std::{io, time::Duration};
 
 #[allow(clippy::too_many_arguments)]
@@ -26,10 +27,13 @@ pub fn run_tui<F>(
     initial_chain: Chain,
     initial_network: crate::app::Network,
     initial_btc_type: BitcoinType,
+    initial_ton_version: TonVersion,
     on_search_start: F,
-) -> Result<Option<(String, String)>>
+) -> Result<Option<(String, String, Chain)>>
 where
-    F: Fn(String, String, bool, Chain, crate::app::Network, BitcoinType) + Send + 'static,
+    F: Fn(String, String, bool, Chain, crate::app::Network, BitcoinType, TonVersion)
+        + Send
+        + 'static,
 {
     enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -46,6 +50,7 @@ where
         initial_chain,
         initial_network,
         initial_btc_type,
+        initial_ton_version,
     );
 
     if start_immediately {
@@ -56,11 +61,11 @@ where
             app.chain,
             app.network,
             app.btc_type,
+            app.ton_version,
         );
     }
     let tick_rate = Duration::from_millis(100);
     let mut last_tick = Instant::now();
-    use std::time::Instant;
 
     loop {
         terminal.draw(|f| ui(f, &mut app))?;
@@ -105,6 +110,7 @@ where
                                         app.chain,
                                         app.network,
                                         app.btc_type,
+                                        app.ton_version,
                                     );
                                 } else if app.input_focus_index < 3 || app.input_focus_index == 5 {
                                     app.toggle_selection();
@@ -141,17 +147,15 @@ where
     execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
     terminal.show_cursor()?;
 
-    // Verify cleanup happened by explicitly flushing stdout
-    // crossterm's disable_raw_mode should be sufficient but explicit print helps
     if let Some(res) = &app.found_address {
         println!("{}", "=".repeat(50));
         println!("SUCCESS! Result found:");
         println!("Address: {}", res.0);
         println!("Private Key: {}", res.1);
         println!("{}", "=".repeat(50));
+        Ok(Some((res.0.clone(), res.1.clone(), app.chain)))
     } else {
         println!("Vanity Crypto: aborted.");
+        Ok(None)
     }
-
-    Ok(app.found_address)
 }
