@@ -37,7 +37,7 @@ The library strictly adheres to the following standards:
 ### TON (The Open Network)
 *   **[V4R2](https://ton.org/docs)**: Standard high-performance wallet contract (Wallet ID `0x29a9a317`).
 *   **[V5R1](https://docs.ton.org/v3/guidelines/smart-contracts/wallet-v5)**: Latest W5 standard (Wallet ID `0x7fffff11`), optimized for gasless operations.
-*   **Smart Addresses**: Automatically generates **Bounceable (EQ)** or **Non-Bounceable (UQ)** addresses based on prefix intent.
+*   **Smart Addresses**: Generates non-bounceable (UQ) addresses by default, and automatically switches to bounceable (EQ) if the prefix starts with `E`.
 
 ## Architecture
 

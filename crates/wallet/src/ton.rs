@@ -120,33 +120,41 @@ impl TonVanityGenerator {
         }
     }
     fn compute_state_init_hash(&self, pubkey_bytes: &[u8]) -> [u8; 32] {
-        // 2. Compute Data Hash
-        let mut hasher = Sha256::new();
-        if self.version == TonWalletVersion::V5R1 {
-            hasher.update(DATA_HEAD_V5R1);
-            hasher.update([0x80 | (pubkey_bytes[0] >> 1)]);
-            for i in 0..31 {
-                hasher.update([(pubkey_bytes[i] << 7) | (pubkey_bytes[i + 1] >> 1)]);
-            }
-            hasher.update([(pubkey_bytes[31] << 7) | 0x20]);
-        } else {
-            hasher.update(DATA_HEAD);
-            hasher.update(pubkey_bytes);
-            hasher.update(DATA_TAIL);
-        }
-        let data_hash = hasher.finalize();
+        match self.version {
+            TonWalletVersion::V5R1 => {
+                // 2. Compute Data Hash for V5R1
+                let mut hasher = Sha256::new();
+                hasher.update(DATA_HEAD_V5R1);
+                hasher.update([0x80 | (pubkey_bytes[0] >> 1)]);
+                for i in 0..31 {
+                    hasher.update([(pubkey_bytes[i] << 7) | (pubkey_bytes[i + 1] >> 1)]);
+                }
+                hasher.update([(pubkey_bytes[31] << 7) | 0x20]);
+                let data_hash = hasher.finalize();
 
-        // 3. Compute StateInit Hash
-        let mut hasher = Sha256::new();
-        if self.version == TonWalletVersion::V5R1 {
-            hasher.update(STATE_INIT_HEAD_V5R1);
-            hasher.update(CODE_HASH_V5R1);
-        } else {
-            hasher.update(STATE_INIT_HEAD);
-            hasher.update(CODE_HASH_V4R2);
+                // 3. Compute StateInit Hash for V5R1
+                let mut hasher = Sha256::new();
+                hasher.update(STATE_INIT_HEAD_V5R1);
+                hasher.update(CODE_HASH_V5R1);
+                hasher.update(data_hash);
+                hasher.finalize().into()
+            }
+            TonWalletVersion::V4R2 => {
+                // 2. Compute Data Hash for V4R2
+                let mut hasher = Sha256::new();
+                hasher.update(DATA_HEAD);
+                hasher.update(pubkey_bytes);
+                hasher.update(DATA_TAIL);
+                let data_hash = hasher.finalize();
+
+                // 3. Compute StateInit Hash for V4R2
+                let mut hasher = Sha256::new();
+                hasher.update(STATE_INIT_HEAD);
+                hasher.update(CODE_HASH_V4R2);
+                hasher.update(data_hash);
+                hasher.finalize().into()
+            }
         }
-        hasher.update(data_hash);
-        hasher.finalize().into()
     }
 }
 
@@ -193,18 +201,7 @@ mod tests {
     use super::*;
     use hex;
 
-    #[test]
-    fn test_v5r1_address_generation() {
-        let seed_hex = "2da54880fb610e9423fc7852d52d27ddadb2c3cc8517114e87d346f42948e14f";
-        let target_addr = "UQDm1CtfFIspmCdbM5JylWCQmUArTv8J4FHXcKv9txA-NxZW";
-
-        let mut seed = [0u8; 32];
-        hex::decode_to_slice(seed_hex, &mut seed).unwrap();
-
-        let signing_key = SigningKey::from_bytes(&seed);
-        let verifying_key = signing_key.verifying_key();
-        let pubkey_bytes = verifying_key.as_bytes();
-
+    fn calculate_v5r1_state_init_hash(pubkey_bytes: &[u8]) -> [u8; 32] {
         let mut hasher = Sha256::new();
         hasher.update(DATA_HEAD_V5R1);
         hasher.update([0x80 | (pubkey_bytes[0] >> 1)]);
@@ -218,10 +215,78 @@ mod tests {
         hasher.update(STATE_INIT_HEAD_V5R1);
         hasher.update(CODE_HASH_V5R1);
         hasher.update(data_hash);
-        let state_init_hash = hasher.finalize();
+        hasher.finalize().into()
+    }
+
+    #[test]
+    fn test_v5r1_address_generation() {
+        let seed_hex = "2da54880fb610e9423fc7852d52d27ddadb2c3cc8517114e87d346f42948e14f";
+        let target_addr = "UQDm1CtfFIspmCdbM5JylWCQmUArTv8J4FHXcKv9txA-NxZW";
+
+        let mut seed = [0u8; 32];
+        hex::decode_to_slice(seed_hex, &mut seed).unwrap();
+
+        let signing_key = SigningKey::from_bytes(&seed);
+        let verifying_key = signing_key.verifying_key();
+        let pubkey_bytes = verifying_key.as_bytes();
+
+        let state_init_hash = calculate_v5r1_state_init_hash(pubkey_bytes);
 
         let address = encode_ton_address(&state_init_hash, 0x51);
         assert_eq!(address, target_addr, "V5R1 Address Mismatch");
+    }
+
+    #[test]
+    fn test_v5r1_vector_modes() {
+        // Vector from Step 3574
+        let seed_hex = "a9b90f710d18b8da16b4f700f05b324daa3dbc57795a780e4c746e98fba242d4";
+        let target_uq = "UQAf25uVNlQUbtYFPintHesYHmC_GDRUa63bqAwtMp8McURe";
+        let target_eq = "EQAf25uVNlQUbtYFPintHesYHmC_GDRUa63bqAwtMp8McRmb";
+
+        let mut seed = [0u8; 32];
+        hex::decode_to_slice(seed_hex, &mut seed).unwrap();
+        let signing_key = SigningKey::from_bytes(&seed);
+        let verifying_key = signing_key.verifying_key();
+        let pubkey_bytes = verifying_key.as_bytes();
+
+        let state_init_hash = calculate_v5r1_state_init_hash(pubkey_bytes);
+
+        // Verify UQ
+        let addr_uq = encode_ton_address(&state_init_hash, 0x51);
+        assert_eq!(addr_uq, target_uq, "V5R1 UQ Mismatch");
+
+        // Verify EQ
+        let addr_eq = encode_ton_address(&state_init_hash, 0x11);
+        assert_eq!(addr_eq, target_eq, "V5R1 EQ Mismatch");
+    }
+
+    #[test]
+    fn test_v5r1_data_hashing() {
+        let pubkey_hex = "d2073d7a52073c61b01c58ffe568aa2db57718a7838e43c92fa6ab56d6514ae2";
+        let target_hash_hex = "14caaf3e738985957c1f389434735a0728432151029ca5f1c458a3bbc5c72c1b";
+        let mut pubkey = [0u8; 32];
+        hex::decode_to_slice(pubkey_hex, &mut pubkey).unwrap();
+        let mut data = Vec::with_capacity(43);
+
+        data.push(0x00);
+        data.push(0x51);
+
+        data.extend_from_slice(&[0x80, 0x00, 0x00, 0x00, 0x3F, 0xFF, 0xFF, 0x88]);
+
+        data.push(0x80 | (pubkey[0] >> 1));
+
+        for i in 0..31 {
+            data.push((pubkey[i] << 7) | (pubkey[i + 1] >> 1));
+        }
+
+        data.push((pubkey[31] << 7) | 0x20);
+
+        let calculated_hash = Sha256::digest(&data);
+        assert_eq!(
+            hex::encode(calculated_hash),
+            target_hash_hex,
+            "V5R1 Hash Mismatch"
+        );
     }
 
     #[test]
@@ -253,44 +318,6 @@ mod tests {
         // V4R2 traditionally used EQ (0x11)
         let address = encode_ton_address(&state_init_hash, 0x11);
         assert_eq!(address, target_v4r2, "V4R2 Address Mismatch");
-    }
-
-    #[test]
-    fn test_v5r1_vector_modes() {
-        // Vector from Step 3574
-        let seed_hex = "a9b90f710d18b8da16b4f700f05b324daa3dbc57795a780e4c746e98fba242d4";
-        let target_uq = "UQAf25uVNlQUbtYFPintHesYHmC_GDRUa63bqAwtMp8McURe";
-        let target_eq = "EQAf25uVNlQUbtYFPintHesYHmC_GDRUa63bqAwtMp8McRmb";
-
-        let mut seed = [0u8; 32];
-        hex::decode_to_slice(seed_hex, &mut seed).unwrap();
-        let signing_key = SigningKey::from_bytes(&seed);
-        let verifying_key = signing_key.verifying_key();
-        let pubkey_bytes = verifying_key.as_bytes();
-
-        // Calculate StateInit for V5R1
-        let mut hasher = Sha256::new();
-        hasher.update(DATA_HEAD_V5R1);
-        hasher.update([0x80 | (pubkey_bytes[0] >> 1)]);
-        for i in 0..31 {
-            hasher.update([(pubkey_bytes[i] << 7) | (pubkey_bytes[i + 1] >> 1)]);
-        }
-        hasher.update([(pubkey_bytes[31] << 7) | 0x20]);
-        let data_hash = hasher.finalize();
-
-        let mut hasher = Sha256::new();
-        hasher.update(STATE_INIT_HEAD_V5R1);
-        hasher.update(CODE_HASH_V5R1);
-        hasher.update(data_hash);
-        let state_init_hash = hasher.finalize();
-
-        // Verify UQ
-        let addr_uq = encode_ton_address(&state_init_hash, 0x51);
-        assert_eq!(addr_uq, target_uq, "V5R1 UQ Mismatch");
-
-        // Verify EQ
-        let addr_eq = encode_ton_address(&state_init_hash, 0x11);
-        assert_eq!(addr_eq, target_eq, "V5R1 EQ Mismatch");
     }
 
     #[test]
@@ -332,34 +359,5 @@ mod tests {
         let addr_str = addr.to_string();
 
         assert!(addr_str.ends_with('x'));
-    }
-
-    #[test]
-    fn test_v5r1_data_hashing() {
-        let pubkey_hex = "d2073d7a52073c61b01c58ffe568aa2db57718a7838e43c92fa6ab56d6514ae2";
-        let target_hash_hex = "14caaf3e738985957c1f389434735a0728432151029ca5f1c458a3bbc5c72c1b";
-        let mut pubkey = [0u8; 32];
-        hex::decode_to_slice(pubkey_hex, &mut pubkey).unwrap();
-        let mut data = Vec::with_capacity(43);
-
-        data.push(0x00);
-        data.push(0x51);
-
-        data.extend_from_slice(&[0x80, 0x00, 0x00, 0x00, 0x3F, 0xFF, 0xFF, 0x88]);
-
-        data.push(0x80 | (pubkey[0] >> 1));
-
-        for i in 0..31 {
-            data.push((pubkey[i] << 7) | (pubkey[i + 1] >> 1));
-        }
-
-        data.push((pubkey[31] << 7) | 0x20);
-
-        let calculated_hash = Sha256::digest(&data);
-        assert_eq!(
-            hex::encode(calculated_hash),
-            target_hash_hex,
-            "V5R1 Hash Mismatch"
-        );
     }
 }

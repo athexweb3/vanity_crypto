@@ -234,10 +234,7 @@ fn main() {
                 }
                 UiChain::Ton => {
                     // Convert UiTonVersion to CoreVersion manually
-                    let core_version = match p_ton_version {
-                        UiTonVersion::V4R2 => vanity_core::TonWalletVersion::V4R2,
-                        UiTonVersion::V5R1 => vanity_core::TonWalletVersion::V5R1,
-                    };
+                    let core_version: vanity_core::TonWalletVersion = p_ton_version.into();
 
                     let gen = vanity_wallet::TonVanityGenerator::new(
                         &p_prefix,

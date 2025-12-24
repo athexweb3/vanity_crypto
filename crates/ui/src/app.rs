@@ -51,6 +51,15 @@ impl TonVersion {
     }
 }
 
+impl From<TonVersion> for vanity_core::TonWalletVersion {
+    fn from(v: TonVersion) -> Self {
+        match v {
+            TonVersion::V4R2 => vanity_core::TonWalletVersion::V4R2,
+            TonVersion::V5R1 => vanity_core::TonWalletVersion::V5R1,
+        }
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Network {
     Mainnet,
