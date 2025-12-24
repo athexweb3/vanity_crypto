@@ -28,7 +28,6 @@ def get_cosmos_address(private_key_hex, hrp="cosmos"):
         address = bech32.bech32_encode(hrp, five_bit_data)
         
         return address
-        return address
     except Exception as e:
         print(f"Error deriving Cosmos address: {e}")
         return None

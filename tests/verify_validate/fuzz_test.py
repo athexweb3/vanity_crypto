@@ -10,7 +10,6 @@ try:
     from verifier.chains.bitcoin import get_bitcoin_address
     from verifier.chains.ethereum import Account
     from verifier.chains.solana import get_solana_address
-    from verifier.chains.solana import get_solana_address
     from verifier.chains.ton import get_ton_address
     from verifier.chains.cosmos import get_cosmos_address
 except ImportError as e:
