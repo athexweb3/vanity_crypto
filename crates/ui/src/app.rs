@@ -8,10 +8,17 @@ pub enum Chain {
     Bitcoin,
     Solana,
     Ton,
+    Cosmos,
 }
 
 impl Chain {
-    pub const ALL: &'static [Chain] = &[Chain::Ethereum, Chain::Bitcoin, Chain::Solana, Chain::Ton];
+    pub const ALL: &'static [Chain] = &[
+        Chain::Ethereum,
+        Chain::Bitcoin,
+        Chain::Solana,
+        Chain::Ton,
+        Chain::Cosmos,
+    ];
 
     pub fn next(&self) -> Self {
         let pos = Self::ALL.iter().position(|&c| c == *self).unwrap_or(0);
@@ -97,6 +104,7 @@ pub struct App {
     pub network: Network,
     pub btc_type: BitcoinType,
     pub ton_version: TonVersion,
+    pub hrp: String,
     pub prefix: String,
     pub suffix: String,
     pub case_sensitive: bool,
@@ -118,6 +126,7 @@ impl App {
         initial_network: Network,
         initial_btc_type: BitcoinType,
         initial_ton_version: TonVersion,
+        initial_hrp: String,
     ) -> Self {
         let state = if start_immediately {
             AppState::Searching
@@ -143,6 +152,7 @@ impl App {
             network: initial_network,
             btc_type: initial_btc_type,
             ton_version: initial_ton_version,
+            hrp: initial_hrp,
             prefix,
             suffix,
             case_sensitive,
@@ -176,8 +186,10 @@ impl App {
             if self.input_focus_index == 1 || self.input_focus_index == 2 {
                 self.input_focus_index = 3;
             }
-        } else if self.chain == Chain::Ton && self.input_focus_index == 1 {
-            self.input_focus_index = 2; // Skip Network, go to Version
+        } else if (self.chain == Chain::Ton || self.chain == Chain::Cosmos)
+            && self.input_focus_index == 1
+        {
+            self.input_focus_index = 2; // Skip Network, go to Version/HRP
         }
     }
 
@@ -193,7 +205,9 @@ impl App {
             if self.input_focus_index == 1 || self.input_focus_index == 2 {
                 self.input_focus_index = 0; // Skip back to Chain
             }
-        } else if self.chain == Chain::Ton && self.input_focus_index == 1 {
+        } else if (self.chain == Chain::Ton || self.chain == Chain::Cosmos)
+            && self.input_focus_index == 1
+        {
             self.input_focus_index = 0; // Skip back to Chain (skipping Network)
         }
     }
@@ -224,6 +238,9 @@ impl App {
                 }
                 if c.eq_ignore_ascii_case(&'t') {
                     self.chain = Chain::Ton;
+                }
+                if c.eq_ignore_ascii_case(&'c') {
+                    self.chain = Chain::Cosmos;
                 }
             }
             1 => {
@@ -257,6 +274,8 @@ impl App {
                     if c == '5' {
                         self.ton_version = TonVersion::V5R1;
                     }
+                } else if self.chain == Chain::Cosmos {
+                    self.hrp.push(c);
                 }
             }
             5 => {
@@ -278,6 +297,11 @@ impl App {
             4 => {
                 // Suffix
                 self.suffix.pop();
+            }
+            2 => {
+                if self.chain == Chain::Cosmos {
+                    self.hrp.pop();
+                }
             }
             _ => {}
         }

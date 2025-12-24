@@ -10,12 +10,14 @@ try:
     from verifier.chains.bitcoin import get_bitcoin_address
     from verifier.chains.ethereum import Account
     from verifier.chains.solana import get_solana_address
+    from verifier.chains.solana import get_solana_address
     from verifier.chains.ton import get_ton_address
+    from verifier.chains.cosmos import get_cosmos_address
 except ImportError as e:
     print(f"[ERROR] Could not import verifier logic: {e}")
     sys.exit(1)
 
-def run_fuzz_test(count, chain, network, btc_type, ton_version):
+def run_fuzz_test(count, chain, network, btc_type, ton_version, hrp):
     print(f"\n[INFO] Starting Fuzz Test with {count} keys...")
     print(f"       Chain: {chain}, Network: {network}")
     if chain == 'bitcoin':
@@ -40,6 +42,8 @@ def run_fuzz_test(count, chain, network, btc_type, ton_version):
         cmd.extend(["--btc-type", btc_type])
     if chain == 'ton':
         cmd.extend(["--ton-version", ton_version])
+    if chain == 'cosmos':
+        cmd.extend(["--hrp", hrp])
 
     print("   Generating batch...")
     try:
@@ -131,6 +135,21 @@ def run_fuzz_test(count, chain, network, btc_type, ton_version):
                     print(f"   Py Expected: {expected}")
                     print(f"   All Variants: {res}")
 
+            elif chain == 'cosmos':
+                py_addr = get_cosmos_address(rust_pk, hrp)
+                if not py_addr:
+                    print(f"FAIL Invalid Cosmos Key: {rust_pk}")
+                    failed += 1
+                    continue
+                
+                if py_addr == rust_addr:
+                    passed += 1
+                else:
+                    failed += 1
+                    print(f"[FAIL] Mismatch at index {i}:")
+                    print(f"   Rust Addr: {rust_addr}")
+                    print(f"   Py Addr:   {py_addr}")
+
         except Exception as e:
             failed += 1
             print(f"[ERROR] Processing line '{line}': {e}")
@@ -150,11 +169,12 @@ def run_fuzz_test(count, chain, network, btc_type, ton_version):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Vanity Crypto Fuzz Test")
     parser.add_argument("--count", type=int, default=100, help="Number of keys to generate")
-    parser.add_argument("--chain", type=str, default="ethereum", choices=["ethereum", "bitcoin", "solana", "ton"])
+    parser.add_argument("--chain", type=str, default="ethereum", choices=["ethereum", "bitcoin", "solana", "ton", "cosmos"])
     parser.add_argument("--network", type=str, default="mainnet", choices=["mainnet", "testnet", "regtest"])
     parser.add_argument("--btc-type", type=str, default="segwit", choices=["legacy", "segwit", "taproot"])
     parser.add_argument("--ton-version", type=str, default="v4r2", choices=["v4r2", "v5r1"])
+    parser.add_argument("--hrp", type=str, default="cosmos", help="HRP for Cosmos addresses")
     
     args = parser.parse_args()
     
-    run_fuzz_test(args.count, args.chain, args.network, args.btc_type, args.ton_version)
+    run_fuzz_test(args.count, args.chain, args.network, args.btc_type, args.ton_version, args.hrp)

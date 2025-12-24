@@ -114,3 +114,28 @@ def get_ton_address(seed_hex):
     except Exception as e:
         print(f"Error deriving TON: {e}")
         return None
+
+def verify_ton_key(input_key):
+    print("\n[VERIFYING TON KEY]")
+    
+    # Strip 0x if present
+    if input_key.startswith("0x"):
+        input_key = input_key[2:]
+        
+    if len(input_key) != 64:
+        print("❌ INVALID LENGTH: 64 hex chars required (32 bytes).")
+        return
+
+    try:
+        addresses = get_ton_address(input_key)
+        if addresses:
+            print("✅ VALID Private Key Verified")
+            print(f"   Private Key: {input_key}")
+            print(f"   V4R2 (EQ):   {addresses.get('v4r2_eq')}")
+            print(f"   V5R1 (UQ):   {addresses.get('v5r1_uq')}")
+            print("")
+        else:
+            print("❌ Failed to derive address.")
+    except Exception as e:
+        print(f"❌ Key Error: {e}")
+
