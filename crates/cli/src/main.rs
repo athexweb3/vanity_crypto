@@ -20,6 +20,7 @@ enum Chain {
     Bitcoin,
     Solana,
     Ton,
+    Cosmos,
 }
 
 #[derive(Debug, Clone, ValueEnum)]
@@ -67,6 +68,7 @@ impl From<Chain> for UiChain {
             Chain::Bitcoin => UiChain::Bitcoin,
             Chain::Solana => UiChain::Solana,
             Chain::Ton => UiChain::Ton,
+            Chain::Cosmos => UiChain::Cosmos,
         }
     }
 }
@@ -145,6 +147,10 @@ struct Args {
     #[arg(long, value_enum, default_value_t = TonVersion::V4R2)]
     ton_version: TonVersion,
 
+    /// Human-Readable Part (HRP) for Cosmos addresses (e.g., cosmos, osmo, juno)
+    #[arg(long, default_value = "cosmos")]
+    hrp: String,
+
     /// Prefix must start with this string (e.g., "0xDEAD")
     #[arg(short, long, default_value = "")]
     prefix: String,
@@ -202,7 +208,8 @@ fn main() {
                                 p_chain: UiChain,
                                 p_network: UiNetwork,
                                 p_btc_type: UiBtcType,
-                                p_ton_version: UiTonVersion| {
+                                p_ton_version: UiTonVersion,
+                                p_hrp: String| {
         let p_prefix = if let Some(stripped) = p_prefix.strip_prefix("0x") {
             stripped.to_string()
         } else {
@@ -244,6 +251,11 @@ fn main() {
                     );
                     gen.search(Some(my_attempts))
                 }
+                UiChain::Cosmos => {
+                    use vanity_wallet::CosmosVanityGenerator;
+                    let gen = CosmosVanityGenerator::new(&p_hrp, &p_prefix, &p_suffix, p_case);
+                    gen.search(Some(my_attempts))
+                }
             };
 
             // Send tuple (Address, PrivateKey) as strings
@@ -276,6 +288,7 @@ fn main() {
             ui_network,
             ui_btc_type,
             ui_ton_version,
+            args.hrp.clone(),
         );
 
         // Simple loop waiting for result
@@ -316,6 +329,7 @@ fn main() {
                 initial_ui_network,
                 initial_ui_btc_type,
                 initial_ui_ton_version,
+                args.hrp.clone(),
             );
         }
 
@@ -330,6 +344,7 @@ fn main() {
             initial_ui_network,
             initial_ui_btc_type,
             initial_ui_ton_version,
+            args.hrp.clone(),
             on_search_start,
         ) {
             Ok(res) => res,
@@ -409,6 +424,9 @@ fn run_batch_generation(count: u64, args: &Args) {
             "",
             false,
             args.ton_version.clone().into(),
+        )),
+        Chain::Cosmos => Box::new(vanity_wallet::CosmosVanityGenerator::new(
+            &args.hrp, "", "", false,
         )),
     };
 

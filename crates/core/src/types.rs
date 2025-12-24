@@ -25,6 +25,7 @@ pub enum Address {
     Bitcoin(String), // Compliant with BIP-58 (Base58Check), BIP-173 (Bech32), or BIP-350 (Bech32m)
     Solana(String),  // Base58 encoded string
     Ton(String),     // Base64 (URL safe) string
+    Cosmos(String),  // Bech32 encoded string
 }
 
 impl fmt::Debug for Address {
@@ -34,6 +35,7 @@ impl fmt::Debug for Address {
             Address::Bitcoin(addr) => write!(f, "Bitcoin({})", addr),
             Address::Solana(addr) => write!(f, "Solana({})", addr),
             Address::Ton(addr) => write!(f, "Ton({})", addr),
+            Address::Cosmos(addr) => write!(f, "Cosmos({})", addr),
         }
     }
 }
@@ -70,6 +72,7 @@ impl fmt::Display for Address {
             }
             Address::Solana(addr) => write!(f, "{}", addr),
             Address::Ton(addr) => write!(f, "{}", addr),
+            Address::Cosmos(addr) => write!(f, "{}", addr),
         }
     }
 }
@@ -83,6 +86,7 @@ impl Address {
             Address::Bitcoin(s) => std::borrow::Cow::Borrowed(s),
             Address::Solana(s) => std::borrow::Cow::Borrowed(s),
             Address::Ton(s) => std::borrow::Cow::Borrowed(s),
+            Address::Cosmos(s) => std::borrow::Cow::Borrowed(s),
         }
     }
 }
@@ -96,6 +100,7 @@ pub enum PrivateKey {
     Bitcoin(String),
     Solana([u8; 64]), // Solana keypairs are 64 bytes (32 private + 32 public)
     Ton([u8; 32]),    // TON private keys are usually stored as 32-byte seeds for import
+    Cosmos([u8; 32]),
 }
 
 impl fmt::Debug for PrivateKey {
@@ -111,6 +116,7 @@ impl fmt::Display for PrivateKey {
             PrivateKey::Bitcoin(wif) => write!(f, "{}", wif),
             PrivateKey::Solana(bytes) => write!(f, "{}", bs58::encode(&bytes[..]).into_string()),
             PrivateKey::Ton(bytes) => write!(f, "{}", hex::encode(bytes)),
+            PrivateKey::Cosmos(bytes) => write!(f, "{}", hex::encode(bytes)),
         }
     }
 }

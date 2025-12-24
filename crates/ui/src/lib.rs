@@ -28,10 +28,11 @@ pub fn run_tui<F>(
     initial_network: crate::app::Network,
     initial_btc_type: BitcoinType,
     initial_ton_version: TonVersion,
+    initial_hrp: String,
     on_search_start: F,
 ) -> Result<Option<(String, String, Chain)>>
 where
-    F: Fn(String, String, bool, Chain, crate::app::Network, BitcoinType, TonVersion)
+    F: Fn(String, String, bool, Chain, crate::app::Network, BitcoinType, TonVersion, String)
         + Send
         + 'static,
 {
@@ -51,6 +52,7 @@ where
         initial_network,
         initial_btc_type,
         initial_ton_version,
+        initial_hrp,
     );
 
     if start_immediately {
@@ -62,6 +64,7 @@ where
             app.network,
             app.btc_type,
             app.ton_version,
+            app.hrp.clone(),
         );
     }
     let tick_rate = Duration::from_millis(100);
@@ -111,6 +114,7 @@ where
                                         app.network,
                                         app.btc_type,
                                         app.ton_version,
+                                        app.hrp.clone(),
                                     );
                                 } else if app.input_focus_index < 3 || app.input_focus_index == 5 {
                                     app.toggle_selection();

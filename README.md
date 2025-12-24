@@ -39,6 +39,11 @@ The library strictly adheres to the following standards:
 *   **[V5R1](https://docs.ton.org/v3/guidelines/smart-contracts/wallet-v5)**: Latest W5 standard (Wallet ID `0x7fffff11`), optimized for gasless operations.
 *   **Smart Addresses**: Generates non-bounceable (UQ) addresses by default, and automatically switches to bounceable (EQ) if the prefix starts with `E`.
 
+### Cosmos
+*   **[Cosmos SDK](https://docs.cosmos.network/)**: Standard `secp256k1` key generation.
+*   **[BIP-173](https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki)**: Bech32 address format.
+*   **Interchain Ready**: Supports any Cosmos chain via configurable HRP (e.g. `cosmos`, `osmo`, `juno`).
+
 ## Architecture
 
 The project employs a specific **Verify-after-Generate** architecture to eliminate single points of failure in the cryptographic logic.
@@ -123,6 +128,12 @@ vc --chain ton --ton-version v4r2 --prefix EQA
 
 # TON (V5R1)
 vc --chain ton --ton-version v5r1 --prefix UQ
+
+# Cosmos (Default: cosmos)
+vc --chain cosmos --prefix atom
+
+# Cosmos (Osmosis)
+vc --chain cosmos --hrp osmo --prefix wow
 ```
 
 | Argument | Description |
@@ -131,6 +142,7 @@ vc --chain ton --ton-version v5r1 --prefix UQ
 | `--prefix <STRING>` | The case-insensitive string to search for. |
 | `--btc-type <legacy\|segwit\|taproot>` | **[Bitcoin]** The address type to generate. |
 | `--ton-version <v4r2\|v5r1>` | **[TON]** The wallet contract version (Default: v4r2). |
+| `--hrp <STRING>` | **[Cosmos]** The Human-Readable Part (Default: cosmos). |
 | `--case-sensitive` | Strictly enforce casing (e.g. `DeaD` vs `dead`). |
 | `--threads <N>` | Override thread count (Default: logical core count). |
 | `--no-tui` | Disable the TUI and output only the final result JSON. |
@@ -157,6 +169,10 @@ python3 tests/verify_validate/fuzz_test.py --chain bitcoin --btc-type taproot
 # Audit TON (V4R2 & V5R1)
 python3 tests/verify_validate/fuzz_test.py --chain ton --ton-version v4r2
 python3 tests/verify_validate/fuzz_test.py --chain ton --ton-version v5r1
+
+# Audit Cosmos
+python3 tests/verify_validate/fuzz_test.py --chain cosmos
+
 ```
 
 ## License
