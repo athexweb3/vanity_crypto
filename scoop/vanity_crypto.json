@@ -5,8 +5,8 @@
     "license": "MIT",
     "architecture": {
         "64bit": {
-            "url": "https://github.com/athexweb3/v0.2.0/releases/download/v0.2.0/vc-windows-amd64.exe",
-            "hash": "3f382b9099990568a7d7346bb5605c7041d9a38b1ffa4fdcfa699b32b099bece"
+            "url": "https://github.com/athexweb3/v0.3.0/releases/download/v0.3.0/vc-windows-amd64.exe",
+            "hash": "fe193d24c6d60f9ae35d229b251e305a10524c11dd23da4c14fa77533f1fc43b"
         }
     },
     "bin": [
@@ -19,7 +19,7 @@
     "autoupdate": {
         "architecture": {
             "64bit": {
-                "url": "https://github.com/athexweb3/v0.2.0/releases/download/v0.2.0/vc-windows-amd64.exe"
+                "url": "https://github.com/athexweb3/v0.3.0/releases/download/v0.3.0/vc-windows-amd64.exe"
             }
         }
     }
