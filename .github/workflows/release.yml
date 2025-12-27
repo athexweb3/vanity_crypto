@@ -138,7 +138,7 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4 # Switching to v4 to be safe/standard
+        uses: actions/checkout@v6 # Switching to v4 to be safe/standard
         with:
           ref: main
           fetch-depth: 0
