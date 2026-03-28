@@ -28,7 +28,7 @@ tokio = { version = "1.49", features = ["full"] }
 # Dev dependencies
 assert_cmd = "2.1"
 predicates = "3.1"
-insta = { version = "1.46.3", features = ["yaml"] }
+insta = { version = "1.47.0", features = ["yaml"] }
 
 
 # Internal crates
